@@ -7,6 +7,7 @@
 
 // Compiler setup and top-level execution
 
+
 // Initialise global variables
 static void init() {
   Line = 1;
@@ -36,7 +37,7 @@ void main(int argc, char *argv[]) {
   }
 
   scan(&Token);			// Get the first token from the input
-  n = binexpr();		// Parse the expression in the file
+  n = binexpr(0);		// Parse the expression in the file
   printf("%d\n", interpretAST(n));	// Calculate the final result
   exit(0);
 }
