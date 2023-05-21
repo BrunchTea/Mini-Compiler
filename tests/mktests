@@ -1,16 +1,22 @@
 #!/bin/sh
 # Make the output files for each test
 
-if [ ! -f ../comp1 ]
-then echo "Need to build ../comp1 first!"; exit 1
+# Build our compiler if needed
+if [ ! -f ../cwj ]
+then (cd ..; make)
 fi
 
-for i in input*
-do if [ ! -f "out.$i" ]
+for i in input*c
+do if [ ! -f "out.$i" -a ! -f "err.$i" ]
    then
-     ../comp1 $i
-     cc -o out out.s ../lib/printint.c
-     ./out > out.$i
-     rm -f out out.s
+     ../cwj -o out $i 2> "err.$i"
+     # If the err file is empty
+     if [ ! -s "err.$i" ]
+     then
+        rm -f "err.$i"
+        cc -o out $i ../lib/printint.c
+        ./out > "out.$i"
+      fi
    fi
+   rm -f out out.s
 done
