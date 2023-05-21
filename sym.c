@@ -61,18 +61,16 @@ void freeloclsyms(void) {
 // Update a symbol at the given slot number in the symbol table. Set up its:
 // + type: char, int etc.
 // + structural type: var, function, array etc.
-// + size: number of elements
-// + endlabel: if this is a function
+// + size: number of elements, or endlabel: end label for a function
 // + posn: Position information for local symbols
 static void updatesym(int slot, char *name, int type, int stype,
-		      int class, int endlabel, int size, int posn) {
+		      int class, int size, int posn) {
   if (slot < 0 || slot >= NSYMBOLS)
     fatal("Invalid symbol slot number in updatesym()");
   Symtable[slot].name = strdup(name);
   Symtable[slot].type = type;
   Symtable[slot].stype = stype;
   Symtable[slot].class = class;
-  Symtable[slot].endlabel = endlabel;
   Symtable[slot].size = size;
   Symtable[slot].posn = posn;
 }
@@ -81,11 +79,9 @@ static void updatesym(int slot, char *name, int type, int stype,
 // + type: char, int etc.
 // + structural type: var, function, array etc.
 // + class of the symbol
-// + size: number of elements
-// + endlabel: if this is a function
+// + size: number of elements, or endlabel: end label for a function
 // Return the slot number in the symbol table
-int addglob(char *name, int type, int stype, int class, int endlabel,
-	    int size) {
+int addglob(char *name, int type, int stype, int class, int size) {
   int slot;
 
   // If this is already in the symbol table, return the existing slot
@@ -94,7 +90,7 @@ int addglob(char *name, int type, int stype, int class, int endlabel,
 
   // Otherwise get a new slot and fill it in
   slot = newglob();
-  updatesym(slot, name, type, stype, class, endlabel, size, 0);
+  updatesym(slot, name, type, stype, class, size, 0);
   // Generate the assembly for the symbol if it's global
   if (class == C_GLOBAL)
     genglobsym(slot);
@@ -117,7 +113,7 @@ int addlocl(char *name, int type, int stype, int class, int size) {
   // Otherwise get a new symbol slot and a position for this local.
   // Update the local symbol table entry.
   localslot = newlocl();
-  updatesym(localslot, name, type, stype, class, 0, size, 0);
+  updatesym(localslot, name, type, stype, class, size, 0);
 
   // Return the local symbol's slot
   return (localslot);

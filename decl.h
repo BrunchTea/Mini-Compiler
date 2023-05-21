@@ -92,7 +92,7 @@ void fatalc(char *s, int c);
 int findglob(char *s);
 int findlocl(char *s);
 int findsymbol(char *s);
-int addglob(char *name, int type, int stype, int class, int endlabel, int size);
+int addglob(char *name, int type, int stype, int class, int size);
 int addlocl(char *name, int type, int stype, int class, int size);
 void copyfuncparams(int slot);
 void freeloclsyms(void);
@@ -105,6 +105,7 @@ void global_declarations(void);
 
 // types.c
 int inttype(int type);
+int ptrtype(int type);
 int parse_type(void);
 int pointer_to(int type);
 int value_at(int type);

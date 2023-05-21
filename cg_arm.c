@@ -246,17 +246,21 @@ int cgstorglob(int r, int id) {
   return (r);
 }
 
-// Array of type sizes in P_XXX order.
-// 0 means no size.
-static int psize[] = { 0, 0, 1, 4, 4, 4, 4, 4 };
-
 // Given a P_XXX type value, return the
 // size of a primitive type in bytes.
 int cgprimsize(int type) {
-  // Check the type is valid
-  if (type < P_NONE || type > P_LONGPTR)
-    fatal("Bad type in cgprimsize()");
-  return (psize[type]);
+  if (ptrtype(type))
+    return (4);
+  switch (type) {
+  case P_CHAR:
+    return (1);
+  case P_INT:
+  case P_LONG:
+    return (4);
+  default:
+    fatald("Bad type in cgprimsize:", type);
+  }
+  return (0);			// Keep -Wall happy
 }
 
 // Generate a global symbol

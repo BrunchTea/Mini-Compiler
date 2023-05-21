@@ -125,7 +125,8 @@ void do_link(char *outfilename, char *objlist[]) {
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
   fprintf(stderr, "Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
-  fprintf(stderr, "       -v give verbose output of the compilation stages\n");
+  fprintf(stderr,
+	  "       -v give verbose output of the compilation stages\n");
   fprintf(stderr, "       -c generate object files but don't link them\n");
   fprintf(stderr, "       -S generate assembly files but don't link them\n");
   fprintf(stderr, "       -T dump the AST trees for each input file\n");
@@ -136,7 +137,7 @@ static void usage(char *prog) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-#define MAXOBJ 100
+enum { MAXOBJ= 100 };
 int main(int argc, char *argv[]) {
   char *outfilename = AOUT;
   char *asmfile, *objfile;
@@ -199,11 +200,11 @@ int main(int argc, char *argv[]) {
 	exit(1);
       }
       objlist[objcnt++] = objfile;	// Add the object file's name
-      objlist[objcnt] = NULL;		// to the list of object files
+      objlist[objcnt] = NULL;	// to the list of object files
     }
 
-    if (!O_keepasm)			// Remove the assembly file if
-      unlink(asmfile);			// we don't need to keep it
+    if (!O_keepasm)		// Remove the assembly file if
+      unlink(asmfile);		// we don't need to keep it
     i++;
   }
 
