@@ -151,18 +151,18 @@ int cgloadglob(int id) {
   set_var_offset(id);
 
   switch (Symtable[id].type) {
-  case P_CHAR:
-    fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
-    break;
-  case P_INT:
-  case P_LONG:
-  case P_CHARPTR:
-  case P_INTPTR:
-  case P_LONGPTR:
-    fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
-    break;
-  default:
-    fatald("Bad type in cgloadglob:", Symtable[id].type);
+    case P_CHAR:
+      fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+      break;
+    case P_INT:
+    case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
+      fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
+      break;
+    default:
+      fatald("Bad type in cgloadglob:", Symtable[id].type);
   }
   return (r);
 }
@@ -230,18 +230,18 @@ int cgstorglob(int r, int id) {
   set_var_offset(id);
 
   switch (Symtable[id].type) {
-  case P_CHAR:
-    fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r]);
-    break;
-  case P_INT:
-  case P_LONG:
-  case P_CHARPTR:
-  case P_INTPTR:
-  case P_LONGPTR:
-    fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
-    break;
-  default:
-    fatald("Bad type in cgstorglob:", Symtable[id].type);
+    case P_CHAR:
+      fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r]);
+      break;
+    case P_INT:
+    case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
+      fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
+      break;
+    default:
+      fatald("Bad type in cgstorglob:", Symtable[id].type);
   }
   return (r);
 }
@@ -252,13 +252,13 @@ int cgprimsize(int type) {
   if (ptrtype(type))
     return (4);
   switch (type) {
-  case P_CHAR:
-    return (1);
-  case P_INT:
-  case P_LONG:
-    return (4);
-  default:
-    fatald("Bad type in cgprimsize:", type);
+    case P_CHAR:
+      return (1);
+    case P_INT:
+    case P_LONG:
+      return (4);
+    default:
+      fatald("Bad type in cgprimsize:", type);
   }
   return (0);			// Keep -Wall happy
 }
@@ -271,14 +271,14 @@ void cgglobsym(int id) {
 
   fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Symtable[id].name);
   switch (typesize) {
-  case 1:
-    fprintf(Outfile, "%s:\t.byte\t0\n", Symtable[id].name);
-    break;
-  case 4:
-    fprintf(Outfile, "%s:\t.long\t0\n", Symtable[id].name);
-    break;
-  default:
-    fatald("Unknown typesize in cgglobsym: ", typesize);
+    case 1:
+      fprintf(Outfile, "%s:\t.byte\t0\n", Symtable[id].name);
+      break;
+    case 4:
+      fprintf(Outfile, "%s:\t.long\t0\n", Symtable[id].name);
+      break;
+    default:
+      fatald("Unknown typesize in cgglobsym: ", typesize);
   }
 }
 
@@ -364,13 +364,13 @@ int cgaddress(int id) {
 // pointing at into the same register
 int cgderef(int r, int type) {
   switch (type) {
-  case P_CHARPTR:
-    fprintf(Outfile, "\tldrb\t%s, [%s]\n", reglist[r], reglist[r]);
-    break;
-  case P_INTPTR:
-  case P_LONGPTR:
-    fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
-    break;
+    case P_CHARPTR:
+      fprintf(Outfile, "\tldrb\t%s, [%s]\n", reglist[r], reglist[r]);
+      break;
+    case P_INTPTR:
+    case P_LONGPTR:
+      fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+      break;
   }
   return (r);
 }
@@ -378,15 +378,15 @@ int cgderef(int r, int type) {
 // Store through a dereferenced pointer
 int cgstorderef(int r1, int r2, int type) {
   switch (type) {
-  case P_CHAR:
-    fprintf(Outfile, "\tstrb\t%s, [%s]\n", reglist[r1], reglist[r2]);
-    break;
-  case P_INT:
-  case P_LONG:
-    fprintf(Outfile, "\tstr\t%s, [%s]\n", reglist[r1], reglist[r2]);
-    break;
-  default:
-    fatald("Can't cgstoderef on type:", type);
+    case P_CHAR:
+      fprintf(Outfile, "\tstrb\t%s, [%s]\n", reglist[r1], reglist[r2]);
+      break;
+    case P_INT:
+    case P_LONG:
+      fprintf(Outfile, "\tstr\t%s, [%s]\n", reglist[r1], reglist[r2]);
+      break;
+    default:
+      fatald("Can't cgstoderef on type:", type);
   }
   return (r1);
 }

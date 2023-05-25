@@ -137,7 +137,7 @@ static void usage(char *prog) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-enum { MAXOBJ= 100 };
+enum { MAXOBJ = 100 };
 int main(int argc, char *argv[]) {
   char *outfilename = AOUT;
   char *asmfile, *objfile;
@@ -160,27 +160,27 @@ int main(int argc, char *argv[]) {
     // For each option in this argument
     for (int j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
       switch (argv[i][j]) {
-      case 'o':
-	outfilename = argv[++i];	// Save & skip to next argument
-	break;
-      case 'T':
-	O_dumpAST = 1;
-	break;
-      case 'c':
-	O_assemble = 1;
-	O_keepasm = 0;
-	O_dolink = 0;
-	break;
-      case 'S':
-	O_keepasm = 1;
-	O_assemble = 0;
-	O_dolink = 0;
-	break;
-      case 'v':
-	O_verbose = 1;
-	break;
-      default:
-	usage(argv[0]);
+	case 'o':
+	  outfilename = argv[++i];	// Save & skip to next argument
+	  break;
+	case 'T':
+	  O_dumpAST = 1;
+	  break;
+	case 'c':
+	  O_assemble = 1;
+	  O_keepasm = 0;
+	  O_dolink = 0;
+	  break;
+	case 'S':
+	  O_keepasm = 1;
+	  O_assemble = 0;
+	  O_dolink = 0;
+	  break;
+	case 'v':
+	  O_verbose = 1;
+	  break;
+	default:
+	  usage(argv[0]);
       }
     }
   }
