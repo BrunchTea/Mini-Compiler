@@ -65,9 +65,10 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype,
 // Add a symbol to the global symbol list
 struct symtable *addglob(char *name, int type, struct symtable *ctype,
 			 int stype, int class, int nelems, int posn) {
-  struct symtable *sym = newsym(name, type, ctype, stype, class, nelems, posn);
+  struct symtable *sym =
+    newsym(name, type, ctype, stype, class, nelems, posn);
   // For structs and unions, copy the size from the type node
-  if (type== P_STRUCT || type== P_UNION)
+  if (type == P_STRUCT || type == P_UNION)
     sym->size = ctype->size;
   appendsym(&Globhead, &Globtail, sym);
   return (sym);
@@ -78,7 +79,7 @@ struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
   struct symtable *sym = newsym(name, type, ctype, stype, C_LOCAL, nelems, 0);
   // For structs and unions, copy the size from the type node
-  if (type== P_STRUCT || type== P_UNION)
+  if (type == P_STRUCT || type == P_UNION)
     sym->size = ctype->size;
   appendsym(&Loclhead, &Locltail, sym);
   return (sym);
@@ -86,7 +87,7 @@ struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 
 // Add a symbol to the parameter list
 struct symtable *addparm(char *name, int type, struct symtable *ctype,
-		 	 int stype) {
+			 int stype) {
   struct symtable *sym = newsym(name, type, ctype, stype, C_PARAM, 1, 0);
   appendsym(&Parmhead, &Parmtail, sym);
   return (sym);
@@ -95,9 +96,10 @@ struct symtable *addparm(char *name, int type, struct symtable *ctype,
 // Add a symbol to the temporary member list
 struct symtable *addmemb(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
-  struct symtable *sym = newsym(name, type, ctype, stype, C_MEMBER, nelems, 0);
+  struct symtable *sym =
+    newsym(name, type, ctype, stype, C_MEMBER, nelems, 0);
   // For structs and unions, copy the size from the type node
-  if (type== P_STRUCT || type== P_UNION)
+  if (type == P_STRUCT || type == P_UNION)
     sym->size = ctype->size;
   appendsym(&Membhead, &Membtail, sym);
   return (sym);
@@ -136,11 +138,12 @@ struct symtable *addtypedef(char *name, int type, struct symtable *ctype) {
 // Search for a symbol in a specific list.
 // Return a pointer to the found node or NULL if not found.
 // If class is not zero, also match on the given class
-static struct symtable *findsyminlist(char *s, struct symtable *list, int class) {
+static struct symtable *findsyminlist(char *s, struct symtable *list,
+				      int class) {
   for (; list != NULL; list = list->next)
     if ((list->name != NULL) && !strcmp(s, list->name))
-      if (class==0 || class== list->class)
-        return (list);
+      if (class == 0 || class == list->class)
+	return (list);
   return (NULL);
 }
 
@@ -220,14 +223,14 @@ struct symtable *findtypedef(char *s) {
 
 // Reset the contents of the symbol table
 void clear_symtable(void) {
-  Globhead =   Globtail  =  NULL;
-  Loclhead =   Locltail  =  NULL;
-  Parmhead =   Parmtail  =  NULL;
-  Membhead =   Membtail  =  NULL;
+  Globhead = Globtail = NULL;
+  Loclhead = Locltail = NULL;
+  Parmhead = Parmtail = NULL;
+  Membhead = Membtail = NULL;
   Structhead = Structtail = NULL;
-  Unionhead =  Uniontail =  NULL;
-  Enumhead =   Enumtail =   NULL;
-  Typehead =   Typetail =   NULL;
+  Unionhead = Uniontail = NULL;
+  Enumhead = Enumtail = NULL;
+  Typehead = Typetail = NULL;
 }
 
 // Clear all the entries in the local symbol table
@@ -240,27 +243,166 @@ void freeloclsyms(void) {
 // Remove all static symbols from the global symbol table
 void freestaticsyms(void) {
   // g points at current node, prev at the previous one
-  struct symtable *g, *prev= NULL;
+  struct symtable *g, *prev = NULL;
 
   // Walk the global table looking for static entries
-  for (g= Globhead; g != NULL; g= g->next) {
+  for (g = Globhead; g != NULL; g = g->next) {
     if (g->class == C_STATIC) {
 
       // If there's a previous node, rearrange the prev pointer
       // to skip over the current node. If not, g is the head,
       // so do the same to Globhead
-      if (prev != NULL) prev->next= g->next;
-      else Globhead->next= g->next;
+      if (prev != NULL)
+	prev->next = g->next;
+      else
+	Globhead->next = g->next;
 
       // If g is the tail, point Globtail at the previous node
       // (if there is one), or Globhead
       if (g == Globtail) {
-        if (prev != NULL) Globtail= prev;
-        else Globtail= Globhead;
+	if (prev != NULL)
+	  Globtail = prev;
+	else
+	  Globtail = Globhead;
       }
     }
   }
 
   // Point prev at g before we move up to the next node
-  prev= g;
+  prev = g;
+}
+
+// Dump a single symbol
+static void dumpsym(struct symtable *sym, int indent) {
+  int i;
+
+  for (i = 0; i < indent; i++)
+    printf(" ");
+  switch (sym->type & (~0xf)) {
+    case P_VOID:
+      printf("void ");
+      break;
+    case P_CHAR:
+      printf("char ");
+      break;
+    case P_INT:
+      printf("int ");
+      break;
+    case P_LONG:
+      printf("long ");
+      break;
+    case P_STRUCT:
+      if (sym->ctype != NULL)
+	printf("struct %s ", sym->ctype->name);
+      else
+	printf("struct %s ", sym->name);
+      break;
+    case P_UNION:
+      if (sym->ctype != NULL)
+	printf("union %s ", sym->ctype->name);
+      else
+	printf("union %s ", sym->name);
+      break;
+    default:
+      printf("unknown type ");
+  }
+
+  for (i = 0; i < (sym->type & 0xf); i++)
+    printf("*");
+  printf("%s", sym->name);
+
+  switch (sym->stype) {
+    case S_VARIABLE:
+      break;
+    case S_FUNCTION:
+      printf("()");
+      break;
+    case S_ARRAY:
+      printf("[]");
+      break;
+    default:
+      printf(" unknown stype");
+  }
+
+  switch (sym->class) {
+    case C_GLOBAL:
+      printf(": global");
+      break;
+    case C_LOCAL:
+      printf(": local");
+      break;
+    case C_PARAM:
+      printf(": param");
+      break;
+    case C_EXTERN:
+      printf(": extern");
+      break;
+    case C_STATIC:
+      printf(": static");
+      break;
+    case C_STRUCT:
+      printf(": struct");
+      break;
+    case C_UNION:
+      printf(": union");
+      break;
+    case C_MEMBER:
+      printf(": member");
+      break;
+    case C_ENUMTYPE:
+      printf(": enumtype");
+      break;
+    case C_ENUMVAL:
+      printf(": enumval");
+      break;
+    case C_TYPEDEF:
+      printf(": typedef");
+      break;
+    default:
+      printf(": unknown class");
+  }
+
+  switch (sym->stype) {
+    case S_VARIABLE:
+      if (sym->class == C_ENUMVAL)
+	printf(", value %d\n", sym->st_posn);
+      else
+	printf(", size %d\n", sym->size);
+      break;
+    case S_FUNCTION:
+      printf(", %d params\n", sym->nelems);
+      break;
+    case S_ARRAY:
+      printf(", %d elems, size %d\n", sym->nelems, sym->size);
+      break;
+  }
+
+  switch (sym->type & (~0xf)) {
+    case P_STRUCT:
+    case P_UNION:
+      dumptable(sym->member, NULL, 4);
+  }
+
+  switch (sym->stype) {
+    case S_FUNCTION:
+      dumptable(sym->member, NULL, 4);
+  }
+}
+
+// Dump one symbol table
+void dumptable(struct symtable *head, char *name, int indent) {
+  struct symtable *sym;
+
+  if (head != NULL && name != NULL)
+    printf("%s\n--------\n", name);
+  for (sym = head; sym != NULL; sym = sym->next)
+    dumpsym(sym, indent);
+}
+
+void dumpsymtables(void) {
+  dumptable(Globhead, "Global", 0);
+  printf("\n");
+  dumptable(Enumhead, "Enums", 0);
+  printf("\n");
+  dumptable(Typehead, "Typedefs", 0);
 }

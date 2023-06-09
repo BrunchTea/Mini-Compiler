@@ -8,10 +8,11 @@
 // Return the position of character c
 // in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
-  char *p;
-
-  p = strchr(s, c);
-  return (p ? p - s : -1);
+  int i;
+  for (i = 0; s[i] != '\0'; i++)
+    if (s[i] == (char) c)
+      return (i);
+  return (-1);
 }
 
 // Get the next character from the input file.
@@ -26,7 +27,8 @@ static int next(void) {
 
   c = fgetc(Infile);		// Read from input file
 
-  while (c == '#') {		// We've hit a pre-processor statement
+  while (Linestart && c == '#') {	// We've hit a pre-processor statement
+    Linestart = 0;		// No longer at the start of the line
     scan(&Token);		// Get the line number into l
     if (Token.token != T_INTLIT)
       fatals("Expecting pre-processor line number, got:", Text);
@@ -44,10 +46,14 @@ static int next(void) {
 
     while ((c = fgetc(Infile)) != '\n');	// Skip to the end of the line
     c = fgetc(Infile);		// and get the next character
+    Linestart = 1;		// Now back at the start of the line
   }
 
-  if ('\n' == c)
+  Linestart = 0;		// No longer at the start of the line
+  if ('\n' == c) {
     Line++;			// Increment line count
+    Linestart = 1;		// Now back at the start of the line
+  }
   return (c);
 }
 
@@ -88,7 +94,7 @@ static int hexchar(void) {
     fatal("missing digits after '\\x'");
   if (n > 255)
     fatal("value out of range after '\\x'");
-  return n;
+  return (n);
 }
 
 // Return the next character from a character
@@ -141,7 +147,7 @@ static int scanch(void) {
 	putback(c);		// Put back the first non-octal char
 	return (c2);
       case 'x':
-	return hexchar();
+	return (hexchar());
       default:
 	fatalc("unknown escape sequence", c);
     }
@@ -192,7 +198,7 @@ static int scanstr(char *buf) {
       buf[i] = 0;
       return (i);
     }
-    buf[i] = c;
+    buf[i] = (char)c;
   }
   // Ran out of buf[] space
   fatal("String literal too long");
@@ -211,7 +217,7 @@ static int scanident(int c, char *buf, int lim) {
     if (lim - 1 == i) {
       fatal("Identifier too long");
     } else if (i < lim - 1) {
-      buf[i++] = c;
+      buf[i++] = (char)c;
     }
     c = next();
   }
@@ -303,7 +309,7 @@ static int keyword(char *s) {
 // List of token strings, for debugging purposes
 char *Tstring[] = {
   "EOF", "=", "+=", "-=", "*=", "/=",
-  "||", "&&", "|", "^", "&",
+  "?", "||", "&&", "|", "^", "&",
   "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
   "+", "-", "*", "/", "++", "--", "~", "!",
   "void", "char", "int", "long",
@@ -414,6 +420,9 @@ int scan(struct token *t) {
       break;
     case ':':
       t->token = T_COLON;
+      break;
+    case '?':
+      t->token = T_QUESTION;
       break;
     case '=':
       if ((c = next()) == '=') {

@@ -7,15 +7,19 @@ int scan(struct token *t);
 
 // tree.c
 struct ASTnode *mkastnode(int op, int type,
+			  struct symtable *ctype,
 			  struct ASTnode *left,
 			  struct ASTnode *mid,
 			  struct ASTnode *right,
 			  struct symtable *sym, int intvalue);
 struct ASTnode *mkastleaf(int op, int type,
+			  struct symtable *ctype,
 			  struct symtable *sym, int intvalue);
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
-			    struct symtable *sym, int intvalue);
-void dumpAST(struct ASTnode *n, int label, int parentASTop);
+struct ASTnode *mkastunary(int op, int type,
+			   struct symtable *ctype,
+			   struct ASTnode *left,
+			   struct symtable *sym, int intvalue);
+void dumpAST(struct ASTnode *n, int label, int level);
 
 // gen.c
 int genlabel(void);
@@ -23,9 +27,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
            int loopendlabel, int parentASTop);
 void genpreamble();
 void genpostamble();
-void genfreeregs();
+void genfreeregs(int keepreg);
 void genglobsym(struct symtable *node);
-int genglobstr(char *strvalue);
+int genglobstr(char *strvalue, int append);
+void genglobstrend(void);
 int genprimsize(int type);
 int genalign(int type, int offset, int direction);
 void genreturn(int reg, int id);
@@ -35,7 +40,9 @@ int cgprimsize(int type);
 int cgalign(int type, int offset, int direction);
 void cgtextseg();
 void cgdataseg();
-void freeall_registers(void);
+int alloc_register(void);
+void freeall_registers(int keepreg);
+void spill_all_regs(void);
 void cgpreamble();
 void cgpostamble();
 void cgfuncpreamble(struct symtable *sym);
@@ -54,7 +61,8 @@ void cgcopyarg(int r, int argposn);
 int cgstorglob(int r, struct symtable *sym);
 int cgstorlocal(int r, struct symtable *sym);
 void cgglobsym(struct symtable *node);
-void cgglobstr(int l, char *strvalue);
+void cgglobstr(int l, char *strvalue, int append);
+void cgglobstrend(void);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
 void cglabel(int l);
@@ -67,6 +75,7 @@ int cgstorderef(int r1, int r2, int type);
 int cgnegate(int r);
 int cginvert(int r);
 int cglognot(int r);
+void cgloadboolean(int r, int val);
 int cgboolean(int r, int op, int label);
 int cgand(int r1, int r2);
 int cgor(int r1, int r2);
@@ -75,6 +84,7 @@ int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
 void cgswitch(int reg, int casecount, int toplabel,
 	int *caselabel, int *caseval, int defaultlabel);
+void cgmove(int r1, int r2);
 
 // expr.c
 struct ASTnode *expression_list(int endtoken);
@@ -122,11 +132,13 @@ struct symtable *findtypedef(char *s);
 void clear_symtable(void);
 void freeloclsyms(void);
 void freestaticsyms(void);
+void dumptable(struct symtable *head, char *name, int indent);
+void dumpsymtables(void);
 
 // decl.c
 int parse_type(struct symtable **ctype, int *class);
 int parse_stars(int type);
-int parse_cast(void);
+int parse_cast(struct symtable **ctype);
 int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 		     struct ASTnode **gluetree);
 void global_declarations(void);
@@ -137,7 +149,8 @@ int ptrtype(int type);
 int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+                            struct symtable *rctype, int op);
 
 // opt.c
 struct ASTnode *optimise(struct ASTnode *n);

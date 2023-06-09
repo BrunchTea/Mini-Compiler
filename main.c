@@ -31,7 +31,8 @@ char *alter_suffix(char *str, char suffix) {
     return (NULL);
 
   // Change the suffix and NUL-terminate the string
-  *posn = suffix; posn++;
+  *posn = suffix;
+  posn++;
   *posn = '\0';
   return (newstr);
 }
@@ -65,16 +66,25 @@ static char *do_compile(char *filename) {
   }
 
   Line = 1;			// Reset the scanner
+  Linestart = 1;
   Putback = '\n';
   clear_symtable();		// Clear the symbol table
   if (O_verbose)
     printf("compiling %s\n", filename);
   scan(&Token);			// Get the first token from the input
-  Peektoken.token= 0;		// and set there is no lookahead token
+  Peektoken.token = 0;		// and set there is no lookahead token
   genpreamble();		// Output the preamble
   global_declarations();	// Parse the global declarations
   genpostamble();		// Output the postamble
   fclose(Outfile);		// Close the output file
+
+  // Dump the symbol table if requested
+  if (O_dumpsym) {
+    printf("Symbols for %s\n", filename);
+    dumpsymtables();
+    fprintf(stdout, "\n\n");
+  }
+
   freestaticsyms();		// Free any static symbols in the file
   return (Outfilename);
 }
@@ -104,7 +114,7 @@ char *do_assemble(char *filename) {
 
 // Given a list of object files and an output filename,
 // link all of the object filenames together.
-void do_link(char *outfilename, char *objlist[]) {
+void do_link(char *outfilename, char **objlist) {
   int cnt, size = TEXTLEN;
   char cmd[TEXTLEN], *cptr;
   int err;
@@ -134,12 +144,13 @@ void do_link(char *outfilename, char *objlist[]) {
 
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
-  fprintf(stderr, "Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
+  fprintf(stderr, "Usage: %s [-vcSTM] [-o outfile] file [file ...]\n", prog);
   fprintf(stderr,
 	  "       -v give verbose output of the compilation stages\n");
   fprintf(stderr, "       -c generate object files but don't link them\n");
   fprintf(stderr, "       -S generate assembly files but don't link them\n");
   fprintf(stderr, "       -T dump the AST trees for each input file\n");
+  fprintf(stderr, "       -M dump the symbol table for each input file\n");
   fprintf(stderr, "       -o outfile, produce the outfile executable file\n");
   exit(1);
 }
@@ -156,6 +167,7 @@ int main(int argc, char *argv[]) {
 
   // Initialise our variables
   O_dumpAST = 0;
+  O_dumpsym = 0;
   O_keepasm = 0;
   O_assemble = 0;
   O_verbose = 0;
@@ -175,6 +187,9 @@ int main(int argc, char *argv[]) {
 	  break;
 	case 'T':
 	  O_dumpAST = 1;
+	  break;
+	case 'M':
+	  O_dumpsym = 1;
 	  break;
 	case 'c':
 	  O_assemble = 1;

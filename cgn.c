@@ -76,10 +76,10 @@ static int localOffset;
 static int stackOffset;
 
 // Create the position of a new local variable.
-int newlocaloffset(int type) {
+int newlocaloffset(int size) {
   // Decrement the offset by a minimum of 4 bytes
   // and allocate on the stack
-  localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
+  localOffset += (size > 4) ? size : 4;
   return (-localOffset);
 }
 
@@ -97,42 +97,90 @@ static char *breglist[]  = { "r10b",  "r11b", "r12b", "r13b", "r9b", "r8b", "cl"
 static char *dreglist[]  = { "r10d",  "r11d", "r12d", "r13d", "r9d", "r8d", "ecx", "edx",
 "esi", "edi"  };
 
-// Set all registers as available
-void freeall_registers(void) {
-  freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
+// Push and pop a register on/off the stack
+static void pushreg(int r) {
+  fprintf(Outfile, "\tpush\t%s\n", reglist[r]);
 }
+
+static void popreg(int r) {
+  fprintf(Outfile, "\tpop\t%s\n", reglist[r]);
+}
+
+// Set all registers as available
+// But if reg is positive, don't free that one.
+void freeall_registers(int keepreg) {
+  int i;
+  fprintf(Outfile, "; freeing all registers\n");
+  for (i = 0; i < NUMFREEREGS; i++)
+    if (i != keepreg)
+      freereg[i] = 1;
+}
+
+// When we need to spill a register, we choose
+// the following register and then cycle through
+// the remaining registers. The spillreg increments
+// continually, so we need to take a modulo NUMFREEREGS
+// on it.
+static int spillreg=0;
 
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
-static int alloc_register(void) {
-  for (int i = 0; i < NUMFREEREGS; i++) {
-    if (freereg[i]) {
-      freereg[i] = 0;
-      return (i);
+int alloc_register(void) {
+  int reg;
+
+  for (reg = 0; reg < NUMFREEREGS; reg++) {
+    if (freereg[reg]) {
+      freereg[reg] = 0;
+      fprintf(Outfile, "; allocated register %s\n", reglist[reg]);
+      return (reg);
     }
   }
-  fatal("Out of registers");
-  return (NOREG);		// Keep -Wall happy
+  // We have no registers, so we must spill one
+  reg = (spillreg % NUMFREEREGS);
+  spillreg++;
+  fprintf(Outfile, "; spilling reg %s\n", reglist[reg]);
+  pushreg(reg);
+  return (reg);
 }
 
 // Return a register to the list of available registers.
 // Check to see if it's not already there.
 static void free_register(int reg) {
-  if (freereg[reg] != 0)
+  if (freereg[reg] != 0) {
+    fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
     fatald("Error trying to free register", reg);
-  freereg[reg] = 1;
+  }
+  // If this was a spilled register, get it back
+  if (spillreg > 0) {
+    spillreg--;
+    reg= (spillreg % NUMFREEREGS);
+    fprintf(Outfile, "; unspilling reg %s\n", reglist[reg]);
+    popreg(reg);
+  } else {
+    fprintf(Outfile, "; freeing reg %s\n", reglist[reg]);
+    freereg[reg] = 1;
+  }
+}
+
+// Spill all registers on the stack
+void spill_all_regs(void) {
+  int i;
+
+  for (i = 0; i < NUMFREEREGS; i++)
+    pushreg(i);
+}
+
+// Unspill all registers from the stack
+static void unspill_all_regs(void) {
+  int i;
+
+  for (i = NUMFREEREGS-1; i >= 0; i--)
+    popreg(i);
 }
 
 // Print out the assembly preamble
 void cgpreamble() {
-  freeall_registers();
-  fputs("\textern\tprintint\n", Outfile);
-  fputs("\textern\tprintchar\n", Outfile);
-  fputs("\textern\topen\n", Outfile);
-  fputs("\textern\tclose\n", Outfile);
-  fputs("\textern\tread\n", Outfile);
-  fputs("\textern\twrite\n", Outfile);
-  fputs("\textern\tprintf\n", Outfile);
+  freeall_registers(NOREG);
   cgtextseg();
   fprintf(Outfile,
 	  "; internal switch(expr) routine\n"
@@ -190,7 +238,7 @@ void cgfuncpreamble(struct symtable *sym) {
       parm->st_posn = paramOffset;
       paramOffset += 8;
     } else {
-      parm->st_posn = newlocaloffset(parm->type);
+      parm->st_posn = newlocaloffset(parm->size);
       cgstorlocal(paramReg--, parm);
     }
   }
@@ -198,7 +246,7 @@ void cgfuncpreamble(struct symtable *sym) {
   // For the remainder, if they are a parameter then they are
   // already on the stack. If only a local, make a stack position.
   for (locvar = Loclhead; locvar != NULL; locvar = locvar->next) {
-    locvar->st_posn = newlocaloffset(locvar->type);
+    locvar->st_posn = newlocaloffset(locvar->size);
   }
 
   // Align the stack pointer to be a multiple of 16
@@ -212,6 +260,7 @@ void cgfuncpostamble(struct symtable *sym) {
   cglabel(sym->st_endlabel);
   fprintf(Outfile, "\tadd\trsp, %d\n", stackOffset);
   fputs("\tpop	rbp\n" "\tret\n", Outfile);
+  freeall_registers(NOREG);
 }
 
 // Load an integer literal value into a register.
@@ -343,9 +392,9 @@ int cgloadglobstr(int label) {
 // Add two registers together and return
 // the number of the register with the result
 int cgadd(int r1, int r2) {
-  fprintf(Outfile, "\tadd\t%s, %s\n", reglist[r2], reglist[r1]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\tadd\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r2);
+  return (r1);
 }
 
 // Subtract the second register from the first and
@@ -359,9 +408,9 @@ int cgsub(int r1, int r2) {
 // Multiply two registers together and return
 // the number of the register with the result
 int cgmul(int r1, int r2) {
-  fprintf(Outfile, "\timul\t%s, %s\n", reglist[r2], reglist[r1]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\timul\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r2);
+  return (r1);
 }
 
 // Divide the first register by the second and
@@ -376,21 +425,21 @@ int cgdiv(int r1, int r2) {
 }
 
 int cgand(int r1, int r2) {
-  fprintf(Outfile, "\tand\t%s, %s\n", reglist[r2], reglist[r1]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\tand\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r2);
+  return (r1);
 }
 
 int cgor(int r1, int r2) {
-  fprintf(Outfile, "\tor\t%s, %s\n", reglist[r2], reglist[r1]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\tor\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r2);
+  return (r1);
 }
 
 int cgxor(int r1, int r2) {
-  fprintf(Outfile, "\txor\t%s, %s\n", reglist[r2], reglist[r1]);
-  free_register(r1);
-  return (r2);
+  fprintf(Outfile, "\txor\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r2);
+  return (r1);
 }
 
 int cgshl(int r1, int r2) {
@@ -427,15 +476,28 @@ int cglognot(int r) {
   return (r);
 }
 
+// Load a boolean value (only 0 or 1)
+// into the given register
+void cgloadboolean(int r, int val) {
+  fprintf(Outfile, "\tmov\t%s, %d\n", reglist[r], val);
+}
+
 // Convert an integer value to a boolean value. Jump if
-// it's an IF or WHILE operation
+// it's an IF, WHILE, LOGAND or LOGOR operation
 int cgboolean(int r, int op, int label) {
   fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
-  if (op == A_IF || op == A_WHILE)
-    fprintf(Outfile, "\tje\tL%d\n", label);
-  else {
-    fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
-    fprintf(Outfile, "\tmovzx\t%s, byte %s\n", reglist[r], breglist[r]);
+  switch(op) {
+    case A_IF:
+    case A_WHILE:
+    case A_LOGAND:
+      fprintf(Outfile, "\tje\tL%d\n", label);
+      break;
+    case A_LOGOR:
+      fprintf(Outfile, "\tjne\tL%d\n", label);
+      break;
+    default:
+      fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
+      fprintf(Outfile, "\tmovzx\t%s, byte %s\n", reglist[r], breglist[r]);
   }
   return (r);
 }
@@ -444,14 +506,18 @@ int cgboolean(int r, int op, int label) {
 // Pop off any arguments pushed on the stack
 // Return the register with the result
 int cgcall(struct symtable *sym, int numargs) {
-  // Get a new register
-  int outr = alloc_register();
+  int outr;
+
   // Call the function
   fprintf(Outfile, "\tcall\t%s\n", sym->name);
+
   // Remove any arguments pushed on the stack
   if (numargs > 6) 
     fprintf(Outfile, "\tadd\trsp, %d\n", 8 * (numargs - 6));
-  // and copy the return value into our register
+  // Unspill all the registers
+  unspill_all_regs();
+  // Get a new register and copy the return value into it
+  outr = alloc_register();
   fprintf(Outfile, "\tmov\t%s, rax\n", reglist[outr]);
   return (outr);
 }
@@ -473,6 +539,7 @@ void cgcopyarg(int r, int argposn) {
     fprintf(Outfile, "\tmov\t%s, %s\n", 
 	    reglist[FIRSTPARAMREG - argposn + 1], reglist[r]);
   }
+  free_register(r);
 }
 
 // Shift a register left by a constant
@@ -534,11 +601,11 @@ void cgglobsym(struct symtable *node) {
   // Get the size of the variable (or its elements if an array)
   // and the type of the variable
   if (node->stype == S_ARRAY) {
-    size= typesize(value_at(node->type), node->ctype);
-    type= value_at(node->type);
+    size = typesize(value_at(node->type), node->ctype);
+    type = value_at(node->type);
   } else {
     size = node->size;
-    type= node->type;
+    type = node->type;
   }
 
   // Generate the global identity and the label
@@ -573,7 +640,7 @@ void cgglobsym(struct symtable *node) {
           fprintf(Outfile, "\tdq\t%d\n", initvalue);
         break;
       default:
-        for (int i = 0; i < size; i++) 
+        for (i = 0; i < size; i++) 
           fprintf(Outfile, "\tdb\t0\n");
         /* compact version using times instead of loop
         fprintf(Outfile, "\ttimes\t%d\tdb\t0\n", size);
@@ -584,52 +651,18 @@ void cgglobsym(struct symtable *node) {
 }
 
 // Generate a global string and its start label
-void cgglobstr(int l, char *strvalue) {
+// Don't output the label if append is true.
+void cgglobstr(int l, char *strvalue, int append) {
   char *cptr;
-  cglabel(l);
+  if (!append)
+    cglabel(l);
   for (cptr = strvalue; *cptr; cptr++) {
     fprintf(Outfile, "\tdb\t%d\n", *cptr);
   }
-  fprintf(Outfile, "\tdb\t0\n");
+}
 
-  /* put string in readable format on a single line
-  // probably went overboard with error checking
-  int comma = 0, quote = 0, start = 1;
-  fprintf(Outfile, "\tdb\t");
-  for (cptr=strvalue; *cptr; cptr++) {
-    if ( ! isprint(*cptr) )
-      if (comma || start) {
-        fprintf(Outfile, "%d, ", *cptr);
-        start = 0;
-        comma = 1;
-      }
-      else if (quote) {
-        fprintf(Outfile, "\', %d, ", *cptr);
-        comma = 1;
-        quote = 0;
-      }
-      else {
-        fprintf(Outfile, "%d, ", *cptr);
-        comma = 1;
-        quote = 0;
-      }
-    else
-      if (start || comma) {
-        fprintf(Outfile, "\'%c", *cptr);
-        start = comma = 0;
-        quote = 1;
-      }
-      else {
-        fprintf(Outfile, "%c", *cptr);
-        comma = 0;
-        quote = 1;
-      }
-  }
-  if (comma || start)
-    fprintf(Outfile, "0\n");
-  else
-    fprintf(Outfile, "\', 0\n");
-  */
+void cgglobstrend(void) {
+  fprintf(Outfile, "\tdb\t0\n");
 }
 
 // List of comparison instructions,
@@ -674,7 +707,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 
   fprintf(Outfile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
   fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-  freeall_registers();
+  freeall_registers(NOREG);
   return (NOREG);
 }
 
@@ -689,24 +722,27 @@ int cgwiden(int r, int oldtype, int newtype) {
 // Generate code to return a value from a function
 void cgreturn(int reg, struct symtable *sym) {
 
-  // Deal with pointers here as we can't put them in
-  // the switch statement
-  if (ptrtype(sym->type))
-    fprintf(Outfile, "\tmov\trax, %s\n", reglist[reg]);
-  else {
-    // Generate code depending on the function's type
-    switch (sym->type) {
-      case P_CHAR:
-        fprintf(Outfile, "\tmovzx\teax, %s\n", breglist[reg]);
-        break;
-      case P_INT:
-        fprintf(Outfile, "\tmov\teax, %s\n", dreglist[reg]);
-        break;
-      case P_LONG:
-        fprintf(Outfile, "\tmov\trax, %s\n", reglist[reg]);
-        break;
-      default:
-        fatald("Bad function type in cgreturn:", sym->type);
+  // Only return a value if we have a value to return
+  if (reg != NOREG) {
+    // Deal with pointers here as we can't put them in
+    // the switch statement
+    if (ptrtype(sym->type))
+      fprintf(Outfile, "\tmov\trax, %s\n", reglist[reg]);
+    else {
+      // Generate code depending on the function's type
+      switch (sym->type) {
+        case P_CHAR:
+          fprintf(Outfile, "\tmovzx\teax, %s\n", breglist[reg]);
+          break;
+        case P_INT:
+          fprintf(Outfile, "\tmov\teax, %s\n", dreglist[reg]);
+          break;
+        case P_LONG:
+          fprintf(Outfile, "\tmov\trax, %s\n", reglist[reg]);
+          break;
+        default:
+          fatald("Bad function type in cgreturn:", sym->type);
+      }
     }
   }
   cgjump(sym->st_endlabel);
@@ -737,10 +773,9 @@ int cgderef(int r, int type) {
     case 1:
       fprintf(Outfile, "\tmovzx\t%s, byte [%s]\n", reglist[r], reglist[r]);
       break;
-    case 2:
+    case 4:
       fprintf(Outfile, "\tmovsx\t%s, dword [%s]\n", reglist[r], reglist[r]);
       break;
-    case 4:
     case 8:
       fprintf(Outfile, "\tmov\t%s, [%s]\n", reglist[r], reglist[r]);
       break;
@@ -759,8 +794,9 @@ int cgstorderef(int r1, int r2, int type) {
     case 1:
       fprintf(Outfile, "\tmov\t[%s], byte %s\n", reglist[r2], breglist[r1]);
       break;
-    case 2:
     case 4:
+      fprintf(Outfile, "\tmov\t[%s], dword %s\n", reglist[r2], dreglist[r1]);
+      break;
     case 8:
       fprintf(Outfile, "\tmov\t[%s], %s\n", reglist[r2], reglist[r1]);
       break;
@@ -798,4 +834,9 @@ void cgswitch(int reg, int casecount, int toplabel,
   fprintf(Outfile, "\tmov\trax, %s\n", reglist[reg]);
   fprintf(Outfile, "\tmov\trdx, L%d\n", label);
   fprintf(Outfile, "\tjmp\tswitch\n");
+}
+
+// Move value between registers
+void cgmove(int r1, int r2) {
+  fprintf(Outfile, "\tmov\t%s, %s\n", reglist[r2], reglist[r1]);
 }

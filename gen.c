@@ -12,7 +12,7 @@ int genlabel(void) {
 }
 
 // Generate the code for an IF statement
-// and an optional ELSE clause
+// and an optional ELSE clause.
 static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   int Lfalse, Lend;
 
@@ -28,11 +28,11 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   // Generate the condition code followed
   // by a jump to the false label.
   genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
-  genfreeregs();
+  genfreeregs(NOREG);
 
   // Generate the true compound statement
   genAST(n->mid, NOLABEL, looptoplabel, loopendlabel, n->op);
-  genfreeregs();
+  genfreeregs(NOREG);
 
   // If there is an optional ELSE clause,
   // generate the jump to skip to the end
@@ -47,7 +47,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   // end label
   if (n->right) {
     genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-    genfreeregs();
+    genfreeregs(NOREG);
     cglabel(Lend);
   }
 
@@ -67,11 +67,11 @@ static int genWHILE(struct ASTnode *n) {
   // Generate the condition code followed
   // by a jump to the end label.
   genAST(n->left, Lend, Lstart, Lend, n->op);
-  genfreeregs();
+  genfreeregs(NOREG);
 
   // Generate the compound statement for the body
   genAST(n->right, NOLABEL, Lstart, Lend, n->op);
-  genfreeregs();
+  genfreeregs(NOREG);
 
   // Finally output the jump back to the condition,
   // and the end label
@@ -102,7 +102,7 @@ static int genSWITCH(struct ASTnode *n) {
   // Output the code to calculate the switch condition
   reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
   cgjump(Ljumptop);
-  genfreeregs();
+  genfreeregs(reg);
 
   // Walk the right-child linked list to
   // generate the code for each case
@@ -119,9 +119,11 @@ static int genSWITCH(struct ASTnode *n) {
     else
       casecount++;
 
-    // Generate the case code. Pass in the end label for the breaks
-    genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
-    genfreeregs();
+    // Generate the case code. Pass in the end label for the breaks.
+    // If case has no body, we will fall into the following body.
+    if (c->left)
+      genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
+    genfreeregs(NOREG);
   }
 
   // Ensure the last case jumps past the switch table
@@ -133,6 +135,42 @@ static int genSWITCH(struct ASTnode *n) {
   return (NOREG);
 }
 
+// Generate the code for an
+// A_LOGAND or A_LOGOR operation
+static int gen_logandor(struct ASTnode *n) {
+  // Generate two labels
+  int Lfalse = genlabel();
+  int Lend = genlabel();
+  int reg;
+
+  // Generate the code for the left expression
+  // followed by the jump to the false label
+  reg= genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
+  cgboolean(reg, n->op, Lfalse);
+  genfreeregs(NOREG);
+
+  // Generate the code for the right expression
+  // followed by the jump to the false label
+  reg= genAST(n->right, NOLABEL, NOLABEL, NOLABEL, 0);
+  cgboolean(reg, n->op, Lfalse);
+  genfreeregs(reg);
+
+  // We didn't jump so set the right boolean value
+  if (n->op== A_LOGAND) {
+    cgloadboolean(reg, 1);
+    cgjump(Lend);
+    cglabel(Lfalse);
+    cgloadboolean(reg, 0);
+  } else {
+    cgloadboolean(reg, 0);
+    cgjump(Lend);
+    cglabel(Lfalse);
+    cgloadboolean(reg, 1);
+  }
+  cglabel(Lend);
+  return(reg);
+}
+
 // Generate the code to copy the arguments of a
 // function call to its parameters, then call the
 // function itself. Return the register that holds 
@@ -141,6 +179,9 @@ static int gen_funccall(struct ASTnode *n) {
   struct ASTnode *gluetree = n->left;
   int reg;
   int numargs = 0;
+
+  // Save the registers before we copy the arguments
+  spill_all_regs();
 
   // If there is a list of arguments, walk this list
   // from the last argument (right-hand child) to the
@@ -153,7 +194,6 @@ static int gen_funccall(struct ASTnode *n) {
     // Keep the first (highest) number of arguments
     if (numargs == 0)
       numargs = gluetree->a_size;
-    genfreeregs();
     gluetree = gluetree->left;
   }
 
@@ -162,12 +202,53 @@ static int gen_funccall(struct ASTnode *n) {
   return (cgcall(n->sym, numargs));
 }
 
+// Generate code for a ternary expression
+static int gen_ternary(struct ASTnode *n) {
+  int Lfalse, Lend;
+  int reg, expreg;
+
+  // Generate two labels: one for the
+  // false expression, and one for the
+  // end of the overall expression
+  Lfalse = genlabel();
+  Lend = genlabel();
+
+  // Generate the condition code followed
+  // by a jump to the false label.
+  genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
+  genfreeregs(NOREG);
+
+  // Get a register to hold the result of the two expressions
+  reg = alloc_register();
+
+  // Generate the true expression and the false label.
+  // Move the expression result into the known register.
+  expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgmove(expreg, reg);
+  // Don't free the register holding the result, though!
+  genfreeregs(reg);
+  cgjump(Lend);
+  cglabel(Lfalse);
+
+  // Generate the false expression and the end label.
+  // Move the expression result into the known register.
+  expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+  cgmove(expreg, reg);
+  // Don't free the register holding the result, though!
+  genfreeregs(reg);
+  cglabel(Lend);
+  return (reg);
+}
+
 // Given an AST, an optional label, and the AST op
 // of the parent, generate assembly code recursively.
 // Return the register id with the tree's final value.
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	   int loopendlabel, int parentASTop) {
-  int leftreg, rightreg;
+  int leftreg= NOREG, rightreg= NOREG;
+
+  // Empty tree, do nothing
+  if (n==NULL) return(NOREG);
 
   // We have some specific AST node handling at the top
   // so that we don't evaluate the child sub-trees immediately
@@ -180,13 +261,21 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       return (genSWITCH(n));
     case A_FUNCCALL:
       return (gen_funccall(n));
+    case A_TERNARY:
+      return (gen_ternary(n));
+    case A_LOGOR:
+      return (gen_logandor(n));
+    case A_LOGAND:
+      return (gen_logandor(n));
     case A_GLUE:
       // Do each child statement, and free the
       // registers after each child
-      if (n->left != NULL) genAST(n->left, iflabel, looptoplabel, loopendlabel, n->op);
-      genfreeregs();
-      if (n->right != NULL) genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
-      genfreeregs();
+      if (n->left != NULL)
+	genAST(n->left, iflabel, looptoplabel, loopendlabel, n->op);
+      genfreeregs(NOREG);
+      if (n->right != NULL)
+	genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
+      genfreeregs(NOREG);
       return (NOREG);
     case A_FUNCTION:
       // Generate the function's preamble before the code
@@ -230,10 +319,11 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_GT:
     case A_LE:
     case A_GE:
-      // If the parent AST node is an A_IF or A_WHILE, generate
-      // a compare followed by a jump. Otherwise, compare registers
-      // and set one to 1 or 0 based on the comparison.
-      if (parentASTop == A_IF || parentASTop == A_WHILE)
+      // If the parent AST node is an A_IF, A_WHILE or A_TERNARY,
+      // generate a compare followed by a jump. Otherwise, compare
+      // registers and set one to 1 or 0 based on the comparison.
+      if (parentASTop == A_IF || parentASTop == A_WHILE ||
+	  parentASTop == A_TERNARY)
 	return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
       else
 	return (cgcompare_and_set(n->op, leftreg, rightreg));
@@ -245,7 +335,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       // Load our value if we are an rvalue
       // or we are being dereferenced
       if (n->rvalue || parentASTop == A_DEREF) {
-	if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC) {
+	if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC
+	    || n->sym->class == C_EXTERN) {
 	  return (cgloadglob(n->sym, n->op));
 	} else {
 	  return (cgloadlocal(n->sym, n->op));
@@ -263,20 +354,20 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       // make it the right child so that we can fall into the assignment code.
       switch (n->op) {
 	case A_ASPLUS:
-	  leftreg= cgadd(leftreg, rightreg);
-	  n->right= n->left;
+	  leftreg = cgadd(leftreg, rightreg);
+	  n->right = n->left;
 	  break;
 	case A_ASMINUS:
-	  leftreg= cgsub(leftreg, rightreg);
-	  n->right= n->left;
+	  leftreg = cgsub(leftreg, rightreg);
+	  n->right = n->left;
 	  break;
-        case A_ASSTAR:
-	  leftreg= cgmul(leftreg, rightreg);
-	  n->right= n->left;
+	case A_ASSTAR:
+	  leftreg = cgmul(leftreg, rightreg);
+	  n->right = n->left;
 	  break;
-        case A_ASSLASH:
-	  leftreg= cgdiv(leftreg, rightreg);
-	  n->right= n->left;
+	case A_ASSLASH:
+	  leftreg = cgdiv(leftreg, rightreg);
+	  n->right = n->left;
 	  break;
       }
 
@@ -285,7 +376,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       switch (n->right->op) {
 	case A_IDENT:
 	  if (n->right->sym->class == C_GLOBAL ||
-  	      n->right->sym->class == C_STATIC)
+	      n->right->sym->class == C_STATIC)
 	    return (cgstorglob(leftreg, n->right->sym));
 	  else
 	    return (cgstorlocal(leftreg, n->right->sym));
@@ -372,16 +463,23 @@ void genpreamble() {
 void genpostamble() {
   cgpostamble();
 }
-void genfreeregs() {
-  freeall_registers();
+void genfreeregs(int keepreg) {
+  freeall_registers(keepreg);
 }
 void genglobsym(struct symtable *node) {
   cgglobsym(node);
 }
-int genglobstr(char *strvalue) {
+
+// Generate a global string.
+// If append is true, append to
+// previous genglobstr() call.
+int genglobstr(char *strvalue, int append) {
   int l = genlabel();
-  cgglobstr(l, strvalue);
+  cgglobstr(l, strvalue, append);
   return (l);
+}
+void genglobstrend(void) {
+  cgglobstrend();
 }
 int genprimsize(int type) {
   return (cgprimsize(type));

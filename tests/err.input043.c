@@ -1,1 +1,1 @@
-Undeclared array:b on line 3 of input043.c
+Unknown variable or function:b on line 3 of input043.c

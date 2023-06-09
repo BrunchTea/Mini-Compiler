@@ -8,5 +8,6 @@ void *malloc(int size);
 void free(void *ptr);
 void *calloc(int nmemb, int size);
 void *realloc(void *ptr, int size);
+int system(char *command);
 
 #endif	// _STDLIB_H_
