@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include <stdio.h>
 #include <unistd.h>
 
 // Miscellaneous functions

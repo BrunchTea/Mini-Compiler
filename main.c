@@ -31,7 +31,7 @@ char *alter_suffix(char *str, char suffix) {
     return (NULL);
 
   // Change the suffix and NUL-terminate the string
-  *posn++ = suffix;
+  *posn = suffix; posn++;
   *posn = '\0';
   return (newstr);
 }
@@ -70,6 +70,7 @@ static char *do_compile(char *filename) {
   if (O_verbose)
     printf("compiling %s\n", filename);
   scan(&Token);			// Get the first token from the input
+  Peektoken.token= 0;		// and set there is no lookahead token
   genpreamble();		// Output the preamble
   global_declarations();	// Parse the global declarations
   genpostamble();		// Output the postamble

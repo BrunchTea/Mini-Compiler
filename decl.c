@@ -334,6 +334,18 @@ static int param_declaration_list(struct symtable *oldfuncsym,
 
   // Loop getting any parameters
   while (Token.token != T_RPAREN) {
+
+    // If the first token is 'void'
+    if (Token.token == T_VOID) {
+      // Peek at the next token. If a ')', the function
+      // has no parameters, so leave the loop.
+      scan(&Peektoken);
+      if (Peektoken.token == T_RPAREN) {
+	// Move the Peektoken into the Token
+        paramcnt= 0; scan(&Token); break;
+      }
+    }
+
     // Get the type of the next parameter
     type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused);
     if (type == -1)
