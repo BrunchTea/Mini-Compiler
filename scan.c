@@ -16,7 +16,7 @@ static int chrpos(char *s, int c) {
 
 // Get the next character from the input file.
 static int next(void) {
-  int c;
+  int c, l;
 
   if (Putback) {		// Use the character put
     c = Putback;		// back if there is one
@@ -25,6 +25,27 @@ static int next(void) {
   }
 
   c = fgetc(Infile);		// Read from input file
+
+  while (c == '#') {		// We've hit a pre-processor statement
+    scan(&Token);		// Get the line number into l
+    if (Token.token != T_INTLIT)
+      fatals("Expecting pre-processor line number, got:", Text);
+    l = Token.intvalue;
+
+    scan(&Token);		// Get the filename in Text
+    if (Token.token != T_STRLIT)
+      fatals("Expecting pre-processor file name, got:", Text);
+
+    if (Text[0] != '<') {	// If this is a real filename
+      if (strcmp(Text, Infilename))	// and not the one we have now
+	Infilename = strdup(Text);	// save it. Then update the line num
+      Line = l;
+    }
+
+    while ((c = fgetc(Infile)) != '\n');	// Skip to the end of the line
+    c = fgetc(Infile);		// and get the next character
+  }
+
   if ('\n' == c)
     Line++;			// Increment line count
   return (c);
@@ -151,13 +172,29 @@ static int scanident(int c, char *buf, int lim) {
 // to waste time strcmp()ing against all the keywords.
 static int keyword(char *s) {
   switch (*s) {
+    case 'b':
+      if (!strcmp(s, "break"))
+	return (T_BREAK);
+      break;
     case 'c':
+      if (!strcmp(s, "case"))
+	return (T_CASE);
       if (!strcmp(s, "char"))
 	return (T_CHAR);
+      if (!strcmp(s, "continue"))
+	return (T_CONTINUE);
+      break;
+    case 'd':
+      if (!strcmp(s, "default"))
+	return (T_DEFAULT);
       break;
     case 'e':
       if (!strcmp(s, "else"))
 	return (T_ELSE);
+      if (!strcmp(s, "enum"))
+	return (T_ENUM);
+      if (!strcmp(s, "extern"))
+	return (T_EXTERN);
       break;
     case 'f':
       if (!strcmp(s, "for"))
@@ -177,13 +214,27 @@ static int keyword(char *s) {
       if (!strcmp(s, "return"))
 	return (T_RETURN);
       break;
-    case 'w':
-      if (!strcmp(s, "while"))
-	return (T_WHILE);
+    case 's':
+      if (!strcmp(s, "struct"))
+	return (T_STRUCT);
+      if (!strcmp(s, "switch"))
+	return (T_SWITCH);
+      break;
+    case 't':
+      if (!strcmp(s, "typedef"))
+	return (T_TYPEDEF);
+      break;
+    case 'u':
+      if (!strcmp(s, "union"))
+	return (T_UNION);
       break;
     case 'v':
       if (!strcmp(s, "void"))
 	return (T_VOID);
+      break;
+    case 'w':
+      if (!strcmp(s, "while"))
+	return (T_WHILE);
       break;
   }
   return (0);
@@ -198,6 +249,22 @@ void reject_token(struct token *t) {
     fatal("Can't reject token twice");
   Rejtoken = t;
 }
+
+
+// List of token strings, for debugging purposes
+char *Tstring[] = {
+  "EOF", "=", "||", "&&", "|", "^", "&",
+  "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
+  "+", "-", "*", "/", "++", "--", "~", "!",
+  "void", "char", "int", "long",
+  "if", "else", "while", "for", "return",
+  "struct", "union", "enum", "typedef",
+  "extern", "break", "continue", "switch",
+  "case", "default",
+  "intlit", "strlit", ";", "identifier",
+  "{", "}", "(", ")", "[", "]", ",", ".",
+  "->", ":"
+};
 
 // Scan and return the next token found in the input.
 // Return 1 if token valid, 0 if no tokens left.
@@ -230,6 +297,8 @@ int scan(struct token *t) {
     case '-':
       if ((c = next()) == '-') {
 	t->token = T_DEC;
+      } else if (c == '>') {
+	t->token = T_ARROW;
       } else {
 	putback(c);
 	t->token = T_MINUS;
@@ -270,6 +339,12 @@ int scan(struct token *t) {
       break;
     case ',':
       t->token = T_COMMA;
+      break;
+    case '.':
+      t->token = T_DOT;
+      break;
+    case ':':
+      t->token = T_COLON;
       break;
     case '=':
       if ((c = next()) == '=') {
@@ -362,5 +437,6 @@ int scan(struct token *t) {
   }
 
   // We found a token
+  t->tokstr = Tstring[t->token];
   return (1);
 }

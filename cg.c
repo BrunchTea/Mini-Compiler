@@ -22,6 +22,53 @@ void cgdataseg() {
   }
 }
 
+// Given a scalar type value, return the
+// size of the type in bytes.
+int cgprimsize(int type) {
+  if (ptrtype(type))
+    return (8);
+  switch (type) {
+    case P_CHAR:
+      return (1);
+    case P_INT:
+      return (4);
+    case P_LONG:
+      return (8);
+    default:
+      fatald("Bad type in cgprimsize:", type);
+  }
+  return (0);			// Keep -Wall happy
+}
+
+// Given a scalar type, an existing memory offset
+// (which hasn't been allocated to anything yet)
+// and a direction (1 is up, -1 is down), calculate
+// and return a suitably aligned memory offset
+// for this scalar type. This could be the original
+// offset, or it could be above/below the original
+int cgalign(int type, int offset, int direction) {
+  int alignment;
+
+  // We don't need to do this on x86-64, but let's
+  // align chars on any offset and align ints/pointers
+  // on a 4-byte alignment
+  switch (type) {
+    case P_CHAR:
+      return (offset);
+    case P_INT:
+    case P_LONG:
+      break;
+    default:
+      fatald("Bad type in calc_aligned_offset:", type);
+  }
+
+  // Here we have an int or a long. Align it on a 4-byte offset
+  // I put the generic code here so it can be reused elsewhere.
+  alignment = 4;
+  offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
+  return (offset);
+}
+
 // Position of next local variable relative to stack base pointer.
 // We store the offset as positive to make aligning the stack pointer easier
 static int localOffset;
@@ -87,6 +134,31 @@ static void free_register(int reg) {
 // Print out the assembly preamble
 void cgpreamble() {
   freeall_registers();
+  cgtextseg();
+  fprintf(Outfile,
+	  "# internal switch(expr) routine\n"
+	  "# %%rsi = switch table, %%rax = expr\n"
+	  "# from SubC: http://www.t3x.org/subc/\n"
+	  "\n"
+	  "switch:\n"
+	  "        pushq   %%rsi\n"
+	  "        movq    %%rdx, %%rsi\n"
+	  "        movq    %%rax, %%rbx\n"
+	  "        cld\n"
+	  "        lodsq\n"
+	  "        movq    %%rax, %%rcx\n"
+	  "next:\n"
+	  "        lodsq\n"
+	  "        movq    %%rax, %%rdx\n"
+	  "        lodsq\n"
+	  "        cmpq    %%rdx, %%rbx\n"
+	  "        jnz     no\n"
+	  "        popq    %%rsi\n"
+	  "        jmp     *%%rax\n"
+	  "no:\n"
+	  "        loop    next\n"
+	  "        lodsq\n"
+	  "        popq    %%rsi\n" "        jmp     *%%rax\n" "\n");
 }
 
 // Nothing to do
@@ -440,27 +512,9 @@ int cgstorlocal(int r, struct symtable *sym) {
   return (r);
 }
 
-// Given a P_XXX type value, return the
-// size of a primitive type in bytes.
-int cgprimsize(int type) {
-  if (ptrtype(type))
-    return (8);
-  switch (type) {
-    case P_CHAR:
-      return (1);
-    case P_INT:
-      return (4);
-    case P_LONG:
-      return (8);
-    default:
-      fatald("Bad type in cgprimsize:", type);
-  }
-  return (0);			// Keep -Wall happy
-}
-
 // Generate a global symbol but not functions
 void cgglobsym(struct symtable *node) {
-  int typesize;
+  int size;
 
   if (node == NULL)
     return;
@@ -468,28 +522,27 @@ void cgglobsym(struct symtable *node) {
     return;
 
   // Get the size of the type
-  typesize = cgprimsize(node->type);
+  size = typesize(node->type, node->ctype);
 
   // Generate the global identity and the label
   cgdataseg();
   fprintf(Outfile, "\t.globl\t%s\n", node->name);
   fprintf(Outfile, "%s:", node->name);
 
-  // Generate the space
-  for (int i = 0; i < node->size; i++) {
-    switch (typesize) {
-      case 1:
+  // Generate the space for this type
+  switch (size) {
+    case 1:
+      fprintf(Outfile, "\t.byte\t0\n");
+      break;
+    case 4:
+      fprintf(Outfile, "\t.long\t0\n");
+      break;
+    case 8:
+      fprintf(Outfile, "\t.quad\t0\n");
+      break;
+    default:
+      for (int i = 0; i < size; i++)
 	fprintf(Outfile, "\t.byte\t0\n");
-	break;
-      case 4:
-	fprintf(Outfile, "\t.long\t0\n");
-	break;
-      case 8:
-	fprintf(Outfile, "\t.quad\t0\n");
-	break;
-      default:
-	fatald("Unknown typesize in cgglobsym: ", typesize);
-    }
   }
 }
 
@@ -632,4 +685,34 @@ int cgstorderef(int r1, int r2, int type) {
       fatald("Can't cgstoderef on type:", type);
   }
   return (r1);
+}
+
+// Generate a switch jump table and the code to
+// load the registers and call the switch() code
+void cgswitch(int reg, int casecount, int toplabel,
+	      int *caselabel, int *caseval, int defaultlabel) {
+  int i, label;
+
+  // Get a label for the switch table
+  label = genlabel();
+  cglabel(label);
+
+  // Heuristic. If we have no cases, create one case
+  // which points to the default case
+  if (casecount == 0) {
+    caseval[0] = 0;
+    caselabel[0] = defaultlabel;
+    casecount = 1;
+  }
+  // Generate the switch jump table.
+  fprintf(Outfile, "\t.quad\t%d\n", casecount);
+  for (i = 0; i < casecount; i++)
+    fprintf(Outfile, "\t.quad\t%d, L%d\n", caseval[i], caselabel[i]);
+  fprintf(Outfile, "\t.quad\tL%d\n", defaultlabel);
+
+  // Load the specific registers
+  cglabel(toplabel);
+  fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+  fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
+  fprintf(Outfile, "\tjmp\tswitch\n");
 }

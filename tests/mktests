@@ -3,7 +3,7 @@
 
 # Build our compiler if needed
 if [ ! -f ../cwj ]
-then (cd ..; make)
+then (cd ..; make install)
 fi
 
 for i in input*c
@@ -14,7 +14,7 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
      if [ ! -s "err.$i" ]
      then
         rm -f "err.$i"
-        cc -o out $i ../lib/printint.c
+        cc -o out $i
         ./out > "out.$i"
       fi
    fi

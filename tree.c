@@ -183,6 +183,21 @@ void dumpAST(struct ASTnode *n, int label, int level) {
     case A_NEGATE:
       fprintf(stdout, "A_NEGATE\n");
       return;
+    case A_BREAK:
+      fprintf(stdout, "A_BREAK\n");
+      return;
+    case A_CONTINUE:
+      fprintf(stdout, "A_CONTINUE\n");
+      return;
+    case A_CASE:
+      fprintf(stdout, "A_CASE %d\n", n->intvalue);
+      return;
+    case A_DEFAULT:
+      fprintf(stdout, "A_DEFAULT\n");
+      return;
+    case A_SWITCH:
+      fprintf(stdout, "A_SWITCH\n");
+      return;
     default:
       fatald("Unknown dumpAST operator", n->op);
   }

@@ -4,7 +4,7 @@
 
 # Build our compiler if needed
 if [ ! -f ../compn ]
-then (cd ..; make)
+then (cd ..; make install)
 fi
 
 # Try to use each input source file

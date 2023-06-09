@@ -19,6 +19,7 @@ enum {
 #define ASCMD "as -o "
 #define LDCMD "cc -o "
 #endif
+#define CPPCMD "cpp -nostdinc -isystem "
 
 // Token types
 enum {
@@ -40,16 +41,21 @@ enum {
 
   // Other keywords
   T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
+  T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
+  T_EXTERN, T_BREAK, T_CONTINUE, T_SWITCH,
+  T_CASE, T_DEFAULT,
 
   // Structural tokens
   T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
   T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
-  T_LBRACKET, T_RBRACKET, T_COMMA
+  T_LBRACKET, T_RBRACKET, T_COMMA, T_DOT,
+  T_ARROW, T_COLON
 };
 
 // Token structure
 struct token {
   int token;			// Token type, from the enum list above
+  char *tokstr;			// String version of the token
   int intvalue;			// For T_INTLIT, the integer value
 };
 
@@ -63,14 +69,16 @@ enum {
   A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN,
   A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE,
   A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
-  A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL
+  A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL, A_BREAK,
+  A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT
 };
 
 // Primitive types. The bottom 4 bits is an integer
 // value that represents the level of indirection,
 // e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-  P_NONE, P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64
+  P_NONE, P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
+  P_STRUCT=80, P_UNION=96
 };
 
 // Structural types
@@ -82,14 +90,21 @@ enum {
 enum {
   C_GLOBAL = 1,			// Globally visible symbol
   C_LOCAL,			// Locally visible symbol
-  C_PARAM			// Locally visible function parameter
+  C_PARAM,			// Locally visible function parameter
+  C_EXTERN,			// External globally visible symbol
+  C_STRUCT,			// A struct
+  C_UNION,			// A union
+  C_MEMBER,			// Member of a struct or union
+  C_ENUMTYPE,			// A named enumeration type
+  C_ENUMVAL,			// A named enumeration value
+  C_TYPEDEF			// A named typedef
 };
 
 // Symbol table structure
-// XXX Put some comments here
 struct symtable {
   char *name;			// Name of a symbol
   int type;			// Primitive type for the symbol
+  struct symtable *ctype;	// If struct/union, ptr to that type
   int stype;			// Structural type for the symbol
   int class;			// Storage class for the symbol
   union {

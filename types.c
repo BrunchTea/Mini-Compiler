@@ -8,7 +8,7 @@
 // Return true if a type is an int type
 // of any size, false otherwise
 int inttype(int type) {
-  return ((type & 0xf) == 0);
+  return (((type & 0xf) == 0) && (type <= P_LONG));
 }
 
 // Return true if a type is of pointer type
@@ -32,6 +32,14 @@ int value_at(int type) {
   return (type - 1);
 }
 
+// Given a type and a composite type pointer, return
+// the size of this type in bytes
+int typesize(int type, struct symtable *ctype) {
+  if (type == P_STRUCT || type == P_UNION)
+    return (ctype->size);
+  return (genprimsize(type));
+}
+
 // Given an AST tree and a type which we want it to become,
 // possibly modify the tree by widening or scaling so that
 // it is compatible with this type. Return the original tree
@@ -44,6 +52,12 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 
   ltype = tree->type;
 
+  // XXX No idea on these yet
+  if (ltype == P_STRUCT || ltype == P_UNION)
+    fatal("Don't know how to do this yet");
+  if (rtype == P_STRUCT || rtype == P_UNION)
+    fatal("Don't know how to do this yet");
+
   // Compare scalar int types
   if (inttype(ltype) && inttype(rtype)) {
 
@@ -52,8 +66,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
       return (tree);
 
     // Get the sizes for each type
-    lsize = genprimsize(ltype);
-    rsize = genprimsize(rtype);
+    lsize = typesize(ltype, NULL);	// XXX Fix soon
+    rsize = typesize(rtype, NULL);	// XXX Fix soon
 
     // Tree's size is too big
     if (lsize > rsize)

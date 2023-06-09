@@ -39,16 +39,24 @@ char *alter_suffix(char *str, char suffix) {
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
 static char *do_compile(char *filename) {
+  char cmd[TEXTLEN];
+
+  // Change the input file's suffix to .s
   Outfilename = alter_suffix(filename, 's');
   if (Outfilename == NULL) {
     fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
     exit(1);
   }
-  // Open up the input file
-  if ((Infile = fopen(filename, "r")) == NULL) {
+  // Generate the pre-processor command
+  snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+
+  // Open up the pre-processor pipe
+  if ((Infile = popen(cmd, "r")) == NULL) {
     fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
     exit(1);
   }
+  Infilename = filename;
+
   // Create the output file
   if ((Outfile = fopen(Outfilename, "w")) == NULL) {
     fprintf(stderr, "Unable to create %s: %s\n", Outfilename,
