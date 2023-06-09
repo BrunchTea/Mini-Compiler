@@ -8,7 +8,7 @@
 // Return true if a type is an int type
 // of any size, false otherwise
 int inttype(int type) {
-  return (((type & 0xf) == 0) && (type <= P_LONG));
+  return (((type & 0xf) == 0) && (type >= P_CHAR && type <= P_LONG));
 }
 
 // Return true if a type is of pointer type
@@ -66,8 +66,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
       return (tree);
 
     // Get the sizes for each type
-    lsize = typesize(ltype, NULL);	// XXX Fix soon
-    rsize = typesize(rtype, NULL);	// XXX Fix soon
+    lsize = typesize(ltype, NULL);
+    rsize = typesize(rtype, NULL);
 
     // Tree's size is too big
     if (lsize > rsize)
@@ -77,12 +77,19 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
     if (rsize > lsize)
       return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
   }
-  // For pointers on the left
-  if (ptrtype(ltype)) {
-    // OK is same type on right and not doing a binary op
-    if (op == 0 && ltype == rtype)
+
+  // For pointers
+  if (ptrtype(ltype) && ptrtype(rtype)) {
+    // We can compare them
+    if (op >= A_EQ && op <= A_GE)
+      return(tree);
+
+    // A comparison of the same type for a non-binary operation is OK,
+    // or when the left tree is of  `void *` type.
+    if (op == 0 && (ltype == rtype || ltype == pointer_to(P_VOID)))
       return (tree);
   }
+
   // We can scale only on A_ADD or A_SUBTRACT operation
   if (op == A_ADD || op == A_SUBTRACT) {
 

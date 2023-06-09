@@ -152,7 +152,7 @@ static struct ASTnode *member_access(int withpointer) {
     fatals("No member found in struct/union: ", Text);
 
   // Build an A_INTLIT node with the offset
-  right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+  right = mkastleaf(A_INTLIT, P_INT, NULL, m->st_posn);
 
   // Add the member's offset to the base of the struct/union
   // and dereference it. Still an lvalue at this point
@@ -173,7 +173,7 @@ static struct ASTnode *postfix(void) {
   // return an A_INTLIT node
   if ((enumptr = findenumval(Text)) != NULL) {
     scan(&Token);
-    return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn));
+    return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->st_posn));
   }
   // Scan in the next token to see if we have a postfix expression
   scan(&Token);
@@ -221,12 +221,13 @@ static struct ASTnode *postfix(void) {
 static struct ASTnode *primary(void) {
   struct ASTnode *n;
   int id;
+  int type=0;
 
   switch (Token.token) {
   case T_INTLIT:
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
-    if ((Token.intvalue) >= 0 && (Token.intvalue < 256))
+    if (Token.intvalue >= 0 && Token.intvalue < 256)
       n = mkastleaf(A_INTLIT, P_CHAR, NULL, Token.intvalue);
     else
       n = mkastleaf(A_INTLIT, P_INT, NULL, Token.intvalue);
@@ -244,10 +245,39 @@ static struct ASTnode *primary(void) {
 
   case T_LPAREN:
     // Beginning of a parenthesised expression, skip the '('.
-    // Scan in the expression and the right parenthesis
     scan(&Token);
-    n = binexpr(0);
-    rparen();
+
+
+    // If the token after is a type identifier, this is a cast expression
+    switch (Token.token) {
+      case T_IDENT:
+        // We have to see if the identifier matches a typedef.
+        // If not, treat it as an expression.
+        if (findtypedef(Text) == NULL) {
+          n = binexpr(0); break;
+        }
+      case T_VOID:
+      case T_CHAR:
+      case T_INT:
+      case T_LONG:
+      case T_STRUCT:
+      case T_UNION:
+      case T_ENUM:
+	// Get the type inside the parentheses
+        type= parse_cast();
+        // Skip the closing ')' and then parse the following expression
+        rparen();
+
+      default: n = binexpr(0); // Scan in the expression
+    }
+
+    // We now have at least an expression in n, and possibly a non-zero type in type
+    // if there was a cast. Skip the closing ')' if there was no cast.
+    if (type == 0)
+      rparen();
+    else
+      // Otherwise, make a unary AST node for the cast
+      n= mkastunary(A_CAST, type, n, NULL, 0);
     return (n);
 
   default:
@@ -271,7 +301,7 @@ static int binastop(int tokentype) {
 // Return true if a token is right-associative,
 // false otherwise.
 static int rightassoc(int tokentype) {
-  if (tokentype == T_ASSIGN)
+  if (tokentype >= T_ASSIGN && tokentype <= T_ASSLASH)
     return (1);
   return (0);
 }
@@ -279,7 +309,9 @@ static int rightassoc(int tokentype) {
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-  0, 10, 20, 30,		// T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+  0, 10, 10,			// T_EOF, T_ASSIGN, T_ASPLUS,
+  10, 10, 10,			// T_ASMINUS, T_ASSTAR, T_ASSLASH,
+  20, 30,			// T_LOGOR, T_LOGAND
   40, 50, 60,			// T_OR, T_XOR, T_AMPER 
   70, 70,			// T_EQ, T_NE
   80, 80, 80, 80,		// T_LT, T_GT, T_LE, T_GE

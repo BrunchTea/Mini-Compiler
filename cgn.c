@@ -58,7 +58,9 @@ int cgalign(int type, int offset, int direction) {
     case P_INT:
     case P_LONG:
       break;
-    default:     fatald("Bad type in calc_aligned_offset:", type);
+    default:
+      if (!ptrtype(type))
+        fatald("Bad type in cg_align:", type);
   }
 
   // Here we have an int or a long. Align it on a 4-byte offset
@@ -184,10 +186,10 @@ void cgfuncpreamble(struct symtable *sym) {
   // The remaining parameters are already on the stack
   for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++) {
     if (cnt > 6) {
-      parm->posn = paramOffset;
+      parm->st_posn = paramOffset;
       paramOffset += 8;
     } else {
-      parm->posn = newlocaloffset(parm->type);
+      parm->st_posn = newlocaloffset(parm->type);
       cgstorlocal(paramReg--, parm);
     }
   }
@@ -195,7 +197,7 @@ void cgfuncpreamble(struct symtable *sym) {
   // For the remainder, if they are a parameter then they are
   // already on the stack. If only a local, make a stack position.
   for (locvar = Loclhead; locvar != NULL; locvar = locvar->next) {
-    locvar->posn = newlocaloffset(locvar->type);
+    locvar->st_posn = newlocaloffset(locvar->type);
   }
 
   // Align the stack pointer to be a multiple of 16
@@ -206,7 +208,7 @@ void cgfuncpreamble(struct symtable *sym) {
 
 // Print out a function postamble
 void cgfuncpostamble(struct symtable *sym) {
-  cglabel(sym->endlabel);
+  cglabel(sym->st_endlabel);
   fprintf(Outfile, "\tadd\trsp, %d\n", stackOffset);
   fputs("\tpop	rbp\n" "\tret\n", Outfile);
 }
@@ -285,42 +287,42 @@ int cgloadlocal(struct symtable *sym, int op) {
   // Print out the code to initialise it
   if (cgprimsize(sym->type) == 8) {
     if (op == A_PREINC)
-      fprintf(Outfile, "\tinc\tqword\t[rbp+%d]\n", sym->posn);
+      fprintf(Outfile, "\tinc\tqword\t[rbp+%d]\n", sym->st_posn);
     if (op == A_PREDEC)
-      fprintf(Outfile, "\tdec\tqword\t[rbp+%d]\n", sym->posn);
+      fprintf(Outfile, "\tdec\tqword\t[rbp+%d]\n", sym->st_posn);
     fprintf(Outfile, "\tmov\t%s, [rbp+%d]\n", reglist[r],
-            sym->posn);
+            sym->st_posn);
     if (op == A_POSTINC)
-      fprintf(Outfile, "\tinc\tqword\t[rbp+%d]\n", sym->posn);
+      fprintf(Outfile, "\tinc\tqword\t[rbp+%d]\n", sym->st_posn);
     if (op == A_POSTDEC)
-      fprintf(Outfile, "\tdec\tqword\t[rbp+%d]\n", sym->posn);
+      fprintf(Outfile, "\tdec\tqword\t[rbp+%d]\n", sym->st_posn);
   } else
   switch (sym->type) {
     case P_CHAR:
       if (op == A_PREINC)
-        fprintf(Outfile, "\tinc\tbyte\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tinc\tbyte\t[rbp+%d]\n", sym->st_posn);
       if (op == A_PREDEC)
-        fprintf(Outfile, "\tdec\tbyte\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tdec\tbyte\t[rbp+%d]\n", sym->st_posn);
       fprintf(Outfile, "\tmovzx\t%s, byte [rbp+%d]\n", reglist[r], 
-              sym->posn);
+              sym->st_posn);
       if (op == A_POSTINC)
-        fprintf(Outfile, "\tinc\tbyte\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tinc\tbyte\t[rbp+%d]\n", sym->st_posn);
       if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdec\tbyte\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tdec\tbyte\t[rbp+%d]\n", sym->st_posn);
       break;
     case P_INT:
       if (op == A_PREINC)
-        fprintf(Outfile, "\tinc\tdword\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tinc\tdword\t[rbp+%d]\n", sym->st_posn);
       if (op == A_PREDEC)
-        fprintf(Outfile, "\tdec\tdword\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tdec\tdword\t[rbp+%d]\n", sym->st_posn);
       fprintf(Outfile, "\tmovsx\t%s, dword [rbp+%d]\n", reglist[r], 
-              sym->posn);
+              sym->st_posn);
       fprintf(Outfile, "\tmovsxd\t%s, %s\n", reglist[r], dreglist[r]);
       if (op == A_POSTINC)
       if (op == A_POSTINC)
-        fprintf(Outfile, "\tinc\tdword\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tinc\tdword\t[rbp+%d]\n", sym->st_posn);
       if (op == A_POSTDEC)
-        fprintf(Outfile, "\tdec\tdword\t[rbp+%d]\n", sym->posn);
+        fprintf(Outfile, "\tdec\tdword\t[rbp+%d]\n", sym->st_posn);
       break;
     default:
       fatald("Bad type in cgloadlocal:", sym->type);
@@ -499,16 +501,16 @@ int cgstorglob(int r, struct symtable *sym) {
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
   if (cgprimsize(sym->type) == 8) {
-    fprintf(Outfile, "\tmov\tqword\t[rbp+%d], %s\n", sym->posn,
+    fprintf(Outfile, "\tmov\tqword\t[rbp+%d], %s\n", sym->st_posn,
             reglist[r]);
   } else
   switch (sym->type) {
     case P_CHAR:
-      fprintf(Outfile, "\tmov\tbyte\t[rbp+%d], %s\n", sym->posn,
+      fprintf(Outfile, "\tmov\tbyte\t[rbp+%d], %s\n", sym->st_posn,
               breglist[r]);
       break;
     case P_INT:
-      fprintf(Outfile, "\tmov\tdword\t[rbp+%d], %s\n", sym->posn,
+      fprintf(Outfile, "\tmov\tdword\t[rbp+%d], %s\n", sym->st_posn,
               dreglist[r]);
       break;
     default:
@@ -519,54 +521,64 @@ int cgstorlocal(int r, struct symtable *sym) {
 
 // Generate a global symbol but not functions
 void cgglobsym(struct symtable *node) {
-  int size;
+  int size, type;
+  int initvalue;
+  int i;
 
   if (node == NULL)
     return;
   if (node->stype == S_FUNCTION)
     return;
-  // Get the size of the type
-  size = typesize(node->type, node->ctype);
+
+  // Get the size of the variable (or its elements if an array)
+  // and the type of the variable
+  if (node->stype == S_ARRAY) {
+    size= typesize(value_at(node->type), node->ctype);
+    type= value_at(node->type);
+  } else {
+    size = node->size;
+    type= node->type;
+  }
 
   // Generate the global identity and the label
   cgdataseg();
   fprintf(Outfile, "\tsection\t.data\n" "\tglobal\t%s\n", node->name);
-  fprintf(Outfile, "%s:", node->name);
+  fprintf(Outfile, "%s:\n", node->name);
 
-  // Generate the space for this type
-  // original version
-  for (int i = 0; i < node->size; i++) {
+  // Output space for one or more elements
+  for (i = 0; i < node->nelems; i++) {
+
+    // Get any initial value
+    initvalue = 0;
+    if (node->initlist != NULL)
+      initvalue = node->initlist[i];
+
+    // Generate the space for this type
+    // original version
     switch(size) {
       case 1:
-        fprintf(Outfile, "\tdb\t0\n");
+        fprintf(Outfile, "\tdb\t%d\n", initvalue);
         break;
       case 4:
-        fprintf(Outfile, "\tdd\t0\n");
+        fprintf(Outfile, "\tdd\t%d\n", initvalue);
         break;
       case 8:
-        fprintf(Outfile, "\tdq\t0\n");
+        // Generate the pointer to a string literal.  Treat a zero value
+        // as actually zero, not the label L0
+        if (node->initlist != NULL && type == pointer_to(P_CHAR) && initvalue != 0)
+          fprintf(Outfile, "\tdq\tL%d\n", initvalue);
+        else
+          fprintf(Outfile, "\tdq\t%d\n", initvalue);
         break;
       default:
         for (int i = 0; i < size; i++) 
           fprintf(Outfile, "\tdb\t0\n");
+        /* compact version using times instead of loop
+        fprintf(Outfile, "\ttimes\t%d\tdb\t0\n", size);
+        */
     }
   }
 
-  /* compact version using times instead of loop
-  switch(size) {
-    case 1:
-      fprintf(Outfile, "\ttimes\t%d\tdb\t0\n", node->size);
-      break;
-    case 4:
-      fprintf(Outfile, "\ttimes\t%d\tdd\t0\n", node->size);
-      break;
-    case 8:
-      fprintf(Outfile, "\ttimes\t%d\tdq\t0\n", node->size);
-      break;
-    default:
-      fprintf(Outfile, "\ttimes\t%d\tdb\t0\n", size);
-  }
-  */
 }
 
 // Generate a global string and its start label
@@ -688,7 +700,7 @@ void cgreturn(int reg, struct symtable *sym) {
     default:
       fatald("Bad function type in cgreturn:", sym->type);
   }
-  cgjump(sym->endlabel);
+  cgjump(sym->st_endlabel);
 }
 
 // Generate code to load the address of an
@@ -700,7 +712,7 @@ int cgaddress(struct symtable *sym) {
     fprintf(Outfile, "\tmov\t%s, %s\n", reglist[r], sym->name);
   else
     fprintf(Outfile, "\tlea\t%s, [rbp+%d]\n", reglist[r],
-            sym->posn);
+            sym->st_posn);
   return (r);
 }
 

@@ -26,7 +26,9 @@ enum {
   T_EOF,
 
   // Binary operators
-  T_ASSIGN, T_LOGOR, T_LOGAND,
+  T_ASSIGN, T_ASPLUS, T_ASMINUS,
+  T_ASSTAR, T_ASSLASH,
+  T_LOGOR, T_LOGAND,
   T_OR, T_XOR, T_AMPER,
   T_EQ, T_NE,
   T_LT, T_GT, T_LE, T_GE,
@@ -62,7 +64,8 @@ struct token {
 // AST node types. The first few line up
 // with the related tokens
 enum {
-  A_ASSIGN = 1, A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND,
+  A_ASSIGN = 1, A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,
+  A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND,
   A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE, A_LSHIFT, A_RSHIFT,
   A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
   A_INTLIT, A_STRLIT, A_IDENT, A_GLUE,
@@ -70,7 +73,7 @@ enum {
   A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE,
   A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
   A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL, A_BREAK,
-  A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT
+  A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST
 };
 
 // Primitive types. The bottom 4 bits is an integer
@@ -107,15 +110,12 @@ struct symtable {
   struct symtable *ctype;	// If struct/union, ptr to that type
   int stype;			// Structural type for the symbol
   int class;			// Storage class for the symbol
-  union {
-    int size;			// Number of elements in the symbol
-    int endlabel;		// For functions, the end label
-  };
-  union {
-    int nelems;			// For functions, # of params
-    int posn;			// For locals, the negative offset
+  int size;			// Total size in bytes of this symbol
+  int nelems;			// Functions: # params. Arrays: # elements
+#define st_endlabel st_posn	// For functions, the end label
+  int st_posn;			// For locals, the negative offset
     				// from the stack base pointer
-  };
+  int *initlist;		// List of initial values
   struct symtable *next;	// Next symbol in one list
   struct symtable *member;	// First member of a function, struct,
 };				// union or enum
@@ -129,10 +129,9 @@ struct ASTnode {
   struct ASTnode *mid;
   struct ASTnode *right;
   struct symtable *sym;		// For many AST nodes, the pointer to
-  union {			// the symbol in the symbol table
-    int intvalue;		// For A_INTLIT, the integer value
-    int size;			// For A_SCALE, the size to scale by
-  };
+  				// the symbol in the symbol table
+#define a_intvalue a_size	// For A_INTLIT, the integer value
+  int a_size;			// For A_SCALE, the size to scale by
 };
 
 enum {

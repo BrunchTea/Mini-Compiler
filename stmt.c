@@ -238,12 +238,12 @@ static struct ASTnode *switch_statement(void) {
 	  // Ensure the case value is an integer literal
 	  if (left->op != A_INTLIT)
 	    fatal("Expecting integer literal for case value");
-	  casevalue= left->intvalue;
+	  casevalue= left->a_intvalue;
 
 	  // Walk the list of existing case values to ensure
   	  // that there isn't a duplicate case value
 	  for (c= casetree; c != NULL; c= c -> right)
-	    if (casevalue == c->intvalue)
+	    if (casevalue == c->a_intvalue)
 	      fatal("Duplicate case value");
         }
 
@@ -268,7 +268,7 @@ static struct ASTnode *switch_statement(void) {
 
   // We have a sub-tree with the cases and any default. Put the
   // case count into the A_SWITCH node and attach the case tree.
-  n->intvalue= casecount;
+  n->a_intvalue= casecount;
   n->right= casetree;
   rbrace();
 
@@ -277,9 +277,8 @@ static struct ASTnode *switch_statement(void) {
 
 // Parse a single statement and return its AST.
 static struct ASTnode *single_statement(void) {
-  int type, class = C_LOCAL;
-  struct symtable *ctype;
   struct ASTnode *stmt;
+  struct symtable *ctype;
 
   switch (Token.token) {
     case T_LBRACE:
@@ -302,15 +301,10 @@ static struct ASTnode *single_statement(void) {
     case T_UNION:
     case T_ENUM:
     case T_TYPEDEF:
-      // The beginning of a variable declaration.
-      // Parse the type and get the identifier.
-      // Then parse the rest of the declaration
-      // and skip over the semicolon
-      type = parse_type(&ctype, &class);
-      ident();
-      var_declaration(type, ctype, class);
+      // The beginning of a variable declaration list.
+      declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
       semi();
-      return (NULL);		// No AST generated here
+      return (stmt);		// Any assignments from the declarations
     case T_IF:
       return (if_statement());
     case T_WHILE:

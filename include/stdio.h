@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#ifndef NULL
+# define NULL (void *)0
+#endif
+
 // This FILE definition will do for now
 typedef char * FILE;
 

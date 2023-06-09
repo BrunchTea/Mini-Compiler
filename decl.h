@@ -101,15 +101,15 @@ void fatalc(char *s, int c);
 void appendsym(struct symtable **head, struct symtable **tail,
 	       struct symtable *node);
 struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype, int class,
-			int size, int posn);
-struct symtable *addglob(char *name, int type, struct symtable *ctype, int stype, int class, int size);
-struct symtable *addlocl(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addparm(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addstruct(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addunion(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addmemb(char *name, int type, struct symtable *ctype, int stype, int size);
+			int nelems, int posn);
+struct symtable *addglob(char *name, int type, struct symtable *ctype, int stype, int class, int nelems, int posn);
+struct symtable *addlocl(char *name, int type, struct symtable *ctype, int stype, int nelems);
+struct symtable *addparm(char *name, int type, struct symtable *ctype, int stype);
+struct symtable *addstruct(char *name);
+struct symtable *addunion(char *name);
+struct symtable *addmemb(char *name, int type, struct symtable *ctype, int stype, int nelems);
 struct symtable *addenum(char *name, int class, int value);
-struct symtable *addtypedef(char *name, int type, struct symtable *ctype, int stype, int size);
+struct symtable *addtypedef(char *name, int type, struct symtable *ctype);
 struct symtable *findglob(char *s);
 struct symtable *findlocl(char *s);
 struct symtable *findsymbol(char *s);
@@ -123,15 +123,20 @@ void clear_symtable(void);
 void freeloclsyms(void);
 
 // decl.c
-struct symtable *var_declaration(int type, struct symtable *ctype, int class);
-struct ASTnode *function_declaration(int type);
+int parse_type(struct symtable **ctype, int *class);
+int parse_stars(int type);
+int parse_cast(void);
+int declaration_list(struct symtable **ctype, int class, int et1, int et2,
+		     struct ASTnode **gluetree);
 void global_declarations(void);
 
 // types.c
 int inttype(int type);
 int ptrtype(int type);
-int parse_type(struct symtable **ctype, int *class);
 int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
+
+// opt.c
+struct ASTnode *optimise(struct ASTnode *n);
