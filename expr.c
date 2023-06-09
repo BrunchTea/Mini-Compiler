@@ -222,8 +222,25 @@ static struct ASTnode *primary(void) {
   struct ASTnode *n;
   int id;
   int type=0;
+  int size, class;
+  struct symtable *ctype;
 
   switch (Token.token) {
+  case T_SIZEOF:
+    // Skip the T_SIZEOF and ensure we have a left parenthesis
+    scan(&Token);
+    if (Token.token != T_LPAREN)
+      fatal("Left parenthesis expected after sizeof");
+    scan(&Token);
+
+    // Get the type inside the parentheses
+    type= parse_stars(parse_type(&ctype, &class));
+    // Get the type's size
+    size= typesize(type, ctype);
+    rparen();
+    // Return a leaf node int literal with the size
+    return (mkastleaf(A_INTLIT, P_INT, NULL, size));
+
   case T_INTLIT:
     // For an INTLIT token, make a leaf AST node for it.
     // Make it a P_CHAR if it's within the P_CHAR range
