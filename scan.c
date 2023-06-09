@@ -273,6 +273,8 @@ static int keyword(char *s) {
     case 's':
       if (!strcmp(s, "sizeof"))
 	return (T_SIZEOF);
+      if (!strcmp(s, "static"))
+	return (T_STATIC);
       if (!strcmp(s, "struct"))
 	return (T_STRUCT);
       if (!strcmp(s, "switch"))
@@ -308,7 +310,7 @@ char *Tstring[] = {
   "if", "else", "while", "for", "return",
   "struct", "union", "enum", "typedef",
   "extern", "break", "continue", "switch",
-  "case", "default", "sizeof",
+  "case", "default", "sizeof", "static",
   "intlit", "strlit", ";", "identifier",
   "{", "}", "(", ")", "[", "]", ",", ".",
   "->", ":"

@@ -226,6 +226,9 @@ static struct ASTnode *primary(void) {
   struct symtable *ctype;
 
   switch (Token.token) {
+  case T_STATIC:
+  case T_EXTERN:
+    fatal("Compiler doesn't support static or extern local declarations");
   case T_SIZEOF:
     // Skip the T_SIZEOF and ensure we have a left parenthesis
     scan(&Token);

@@ -75,6 +75,7 @@ static char *do_compile(char *filename) {
   global_declarations();	// Parse the global declarations
   genpostamble();		// Output the postamble
   fclose(Outfile);		// Close the output file
+  freestaticsyms();		// Free any static symbols in the file
   return (Outfilename);
 }
 

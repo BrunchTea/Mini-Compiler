@@ -45,7 +45,7 @@ enum {
   T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
   T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
   T_EXTERN, T_BREAK, T_CONTINUE, T_SWITCH,
-  T_CASE, T_DEFAULT, T_SIZEOF,
+  T_CASE, T_DEFAULT, T_SIZEOF, T_STATIC,
 
   // Structural tokens
   T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -73,7 +73,7 @@ enum {
   A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE,
   A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
   A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL, A_BREAK,
-  A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST,
+  A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST
 };
 
 // Primitive types. The bottom 4 bits is an integer
@@ -95,6 +95,7 @@ enum {
   C_LOCAL,			// Locally visible symbol
   C_PARAM,			// Locally visible function parameter
   C_EXTERN,			// External globally visible symbol
+  C_STATIC,			// Static symbol, visible in one file
   C_STRUCT,			// A struct
   C_UNION,			// A union
   C_MEMBER,			// Member of a struct or union

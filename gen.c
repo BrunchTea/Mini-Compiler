@@ -6,9 +6,9 @@
 
 
 // Generate and return a new label number
+static int labelid = 1;
 int genlabel(void) {
-  static int id = 1;
-  return (id++);
+  return (labelid++);
 }
 
 // Generate the code for an IF statement
@@ -245,7 +245,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       // Load our value if we are an rvalue
       // or we are being dereferenced
       if (n->rvalue || parentASTop == A_DEREF) {
-	if (n->sym->class == C_GLOBAL) {
+	if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC) {
 	  return (cgloadglob(n->sym, n->op));
 	} else {
 	  return (cgloadlocal(n->sym, n->op));
@@ -284,7 +284,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
       // Are we assigning to an identifier or through a pointer?
       switch (n->right->op) {
 	case A_IDENT:
-	  if (n->right->sym->class == C_GLOBAL)
+	  if (n->right->sym->class == C_GLOBAL ||
+  	      n->right->sym->class == C_STATIC)
 	    return (cgstorglob(leftreg, n->right->sym));
 	  else
 	    return (cgstorlocal(leftreg, n->right->sym));
@@ -328,7 +329,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_POSTDEC:
       // Load and decrement the variable's value into a register
       // and post increment/decrement it
-      if (n->sym->class == C_GLOBAL)
+      if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC)
 	return (cgloadglob(n->sym, n->op));
       else
 	return (cgloadlocal(n->sym, n->op));
@@ -336,7 +337,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_PREDEC:
       // Load and decrement the variable's value into a register
       // and pre increment/decrement it
-      if (n->left->sym->class == C_GLOBAL)
+      if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_STATIC)
 	return (cgloadglob(n->left->sym, n->op));
       else
 	return (cgloadlocal(n->left->sym, n->op));

@@ -16,11 +16,21 @@ static void enum_declaration(void);
 int parse_type(struct symtable **ctype, int *class) {
   int type, exstatic = 1;
 
-  // See if the class has been changed to extern (later, static)
+  // See if the class has been changed to extern or static
   while (exstatic) {
     switch (Token.token) {
       case T_EXTERN:
+	if (*class == C_STATIC)
+	  fatal("Illegal to have extern and static at the same time");
 	*class = C_EXTERN;
+	scan(&Token);
+	break;
+      case T_STATIC:
+	if (*class == C_LOCAL)
+	  fatal("Compiler doesn't support static local declarations");
+	if (*class == C_EXTERN)
+	  fatal("Illegal to have extern and static at the same time");
+	*class = C_STATIC;
 	scan(&Token);
 	break;
       default:
@@ -97,7 +107,7 @@ int parse_stars(int type) {
 
 // Parse a type which appears inside a cast
 int parse_cast(void) {
-  int type, class;
+  int type, class=0;
   struct symtable *ctype;
 
   // Get the type inside the parentheses
@@ -163,6 +173,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
 
   // Add this as a known scalar
   switch (class) {
+    case C_STATIC:
     case C_EXTERN:
     case C_GLOBAL:
       sym= addglob(varname, type, ctype, S_VARIABLE, class, 1, 0);
@@ -181,12 +192,12 @@ static struct symtable *scalar_declaration(char *varname, int type,
   // The variable is being initialised
   if (Token.token == T_ASSIGN) {
     // Only possible for a global or local
-    if (class != C_GLOBAL && class != C_LOCAL)
+    if (class != C_GLOBAL && class != C_LOCAL && class != C_STATIC)
       fatals("Variable can not be initialised", varname);
     scan(&Token);
 
     // Globals must be assigned a literal value
-    if (class == C_GLOBAL) {
+    if (class == C_GLOBAL || class == C_STATIC) {
       // Create one initial value for the variable and
       // parse this value
       sym->initlist= (int *)malloc(sizeof(int));
@@ -212,7 +223,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
   }
 
   // Generate any global space
-  if (class == C_GLOBAL)
+  if (class == C_GLOBAL || class == C_STATIC)
     genglobsym(sym);
 
   return (sym);
@@ -247,6 +258,7 @@ static struct symtable *array_declaration(char *varname, int type,
   // Add this as a known array. We treat the
   // array as a pointer to its elements' type
   switch (class) {
+    case C_STATIC:
     case C_EXTERN:
     case C_GLOBAL:
       sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
@@ -258,7 +270,7 @@ static struct symtable *array_declaration(char *varname, int type,
 
   // Array initialisation
   if (Token.token == T_ASSIGN) {
-    if (class != C_GLOBAL)
+    if (class != C_GLOBAL && class != C_STATIC)
       fatals("Variable can not be initialised", varname);
     scan(&Token);
 
@@ -312,7 +324,7 @@ static struct symtable *array_declaration(char *varname, int type,
   sym->nelems= nelems;
   sym->size= sym->nelems * typesize(type, ctype);
   // Generate any global space
-  if (class == C_GLOBAL)
+  if (class == C_GLOBAL || class == C_STATIC)
     genglobsym(sym);
   return (sym);
 }
@@ -399,7 +411,7 @@ static struct symtable *function_declaration(char *funcname, int type,
     endlabel = genlabel();
     // Assumtion: functions only return scalar types, so NULL below
     newfuncsym =
-      addglob(funcname, type, NULL, S_FUNCTION, C_GLOBAL, 0, endlabel);
+      addglob(funcname, type, NULL, S_FUNCTION, class, 0, endlabel);
   }
   // Scan in the '(', any parameters and the ')'.
   // Pass in any existing function prototype pointer
@@ -682,6 +694,7 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
   // See if this array or scalar variable has already been declared
   switch (class) {
     case C_EXTERN:
+    case C_STATIC:
     case C_GLOBAL:
       if (findglob(varname) != NULL)
 	fatals("Duplicate global variable declaration", varname);
@@ -726,7 +739,7 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 
     // We parsed a function, there is no list so leave
     if (sym->stype == S_FUNCTION) {
-      if (class != C_GLOBAL)
+      if (class != C_GLOBAL && class != C_STATIC)
         fatal("Function definition not at global level");
       return (type);
     }

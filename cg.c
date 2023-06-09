@@ -179,11 +179,12 @@ void cgfuncpreamble(struct symtable *sym) {
   localOffset = 0;
 
   // Output the function start, save the %rsp and %rsp
+  if (sym->class == C_GLOBAL)
+    fprintf(Outfile, "\t.globl\t%s\n"
+	  "\t.type\t%s, @function\n", name, name);
   fprintf(Outfile,
-	  "\t.globl\t%s\n"
-	  "\t.type\t%s, @function\n"
 	  "%s:\n" "\tpushq\t%%rbp\n"
-	  "\tmovq\t%%rsp, %%rbp\n", name, name, name);
+	  "\tmovq\t%%rsp, %%rbp\n", name);
 
   // Copy any in-register parameters to the stack, up to six of them
   // The remaining parameters are already on the stack
@@ -536,7 +537,8 @@ void cgglobsym(struct symtable *node) {
   
   // Generate the global identity and the label
   cgdataseg();
-  fprintf(Outfile, "\t.globl\t%s\n", node->name);
+  if (node->class == C_GLOBAL)
+    fprintf(Outfile, "\t.globl\t%s\n", node->name);
   fprintf(Outfile, "%s:\n", node->name);
 
   // Output space for one or more elements
@@ -636,19 +638,26 @@ int cgwiden(int r, int oldtype, int newtype) {
 
 // Generate code to return a value from a function
 void cgreturn(int reg, struct symtable *sym) {
-  // Generate code depending on the function's type
-  switch (sym->type) {
-    case P_CHAR:
-      fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
-      break;
-    case P_INT:
-      fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
-      break;
-    case P_LONG:
-      fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-      break;
-    default:
-      fatald("Bad function type in cgreturn:", sym->type);
+
+  // Deal with pointers here as we can't put them in
+  // the switch statement
+  if (ptrtype(sym->type)) 
+    fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+  else {
+    // Generate code depending on the function's type
+    switch (sym->type) {
+      case P_CHAR:
+        fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+        break;
+      case P_INT:
+        fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+        break;
+      case P_LONG:
+        fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+        break;
+      default:
+        fatald("Bad function type in cgreturn:", sym->type);
+    }
   }
   cgjump(sym->st_endlabel);
 }
@@ -659,7 +668,7 @@ void cgreturn(int reg, struct symtable *sym) {
 int cgaddress(struct symtable *sym) {
   int r = alloc_register();
 
-  if (sym->class == C_GLOBAL)
+  if (sym->class == C_GLOBAL || sym->class == C_STATIC)
     fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
   else
     fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
