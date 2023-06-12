@@ -83,17 +83,21 @@ static int hexchar(void) {
   while (isxdigit(c = next())) {
     // Convert from char to int value
     h = chrpos("0123456789abcdef", tolower(c));
+
     // Add to running hex value
     n = n * 16 + h;
     f = 1;
   }
+
   // We hit a non-hex character, put it back
   putback(c);
+
   // Flag tells us we never saw any hex characters
   if (!f)
     fatal("missing digits after '\\x'");
   if (n > 255)
     fatal("value out of range after '\\x'");
+
   return (n);
 }
 
@@ -127,6 +131,7 @@ static int scanch(void) {
 	return ('"');
       case '\'':
 	return ('\'');
+
 	// Deal with octal constants by reading in
 	// characters until we hit a non-octal digit.
 	// Build up the octal value in c2 and count
@@ -144,6 +149,7 @@ static int scanch(void) {
 	    break;
 	  c2 = c2 * 8 + (c - '0');
 	}
+
 	putback(c);		// Put back the first non-octal char
 	return (c2);
       case 'x':
@@ -198,8 +204,9 @@ static int scanstr(char *buf) {
       buf[i] = 0;
       return (i);
     }
-    buf[i] = (char)c;
+    buf[i] = (char) c;
   }
+
   // Ran out of buf[] space
   fatal("String literal too long");
   return (0);
@@ -217,10 +224,11 @@ static int scanident(int c, char *buf, int lim) {
     if (lim - 1 == i) {
       fatal("Identifier too long");
     } else if (i < lim - 1) {
-      buf[i++] = (char)c;
+      buf[i++] = (char) c;
     }
     c = next();
   }
+
   // We hit a non-valid character, put it back.
   // NUL-terminate the buf[] and return the length
   putback(c);
@@ -308,10 +316,10 @@ static int keyword(char *s) {
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-  "EOF", "=", "+=", "-=", "*=", "/=",
+  "EOF", "=", "+=", "-=", "*=", "/=", "%=",
   "?", "||", "&&", "|", "^", "&",
-  "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
-  "+", "-", "*", "/", "++", "--", "~", "!",
+  "==", "!=", "<", ">", "<=", ">=", "<<", ">>",
+  "+", "-", "*", "/", "%", "++", "--", "~", "!",
   "void", "char", "int", "long",
   "if", "else", "while", "for", "return",
   "struct", "union", "enum", "typedef",
@@ -383,6 +391,14 @@ int scan(struct token *t) {
       } else {
 	putback(c);
 	t->token = T_SLASH;
+      }
+      break;
+    case '%':
+      if ((c = next()) == '=') {
+	t->token = T_ASMOD;
+      } else {
+	putback(c);
+	t->token = T_MOD;
       }
       break;
     case ';':

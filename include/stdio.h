@@ -30,6 +30,7 @@ int putchar(int c);
 int puts(char *s);
 FILE *popen(char *command, char *type);
 int pclose(FILE *stream);
+int fflush(FILE *stream);
 
 extern FILE *stdin;
 extern FILE *stdout;

@@ -12,6 +12,4 @@ int main()
   for (j= 253; j != 4; j= j + 1) { printf("%d\n", j); }
   for (k= 1;   k <= 5; k= k + 1) { printf("%d\n", k); }
   return(i);
-  printf("%d\n", 12345);
-  return(3);
 }

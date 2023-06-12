@@ -78,6 +78,7 @@ struct symtable *addglob(char *name, int type, struct symtable *ctype,
 struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
   struct symtable *sym = newsym(name, type, ctype, stype, C_LOCAL, nelems, 0);
+
   // For structs and unions, copy the size from the type node
   if (type == P_STRUCT || type == P_UNION)
     sym->size = ctype->size;
@@ -98,6 +99,7 @@ struct symtable *addmemb(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
   struct symtable *sym =
     newsym(name, type, ctype, stype, C_MEMBER, nelems, 0);
+
   // For structs and unions, copy the size from the type node
   if (type == P_STRUCT || type == P_UNION)
     sym->size = ctype->size;

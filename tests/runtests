@@ -11,7 +11,7 @@ fi
 for i in input*c
 # We can't do anything if there's no file to test against
 do if [ ! -f "out.$i" -a ! -f "err.$i" ]
-   then echo "Can't run test on $i, no output file!"
+   then echo "Can't run test on $i, no output file!"; exit 1
 
    # Output file: compile the source, run it and
    # capture the output, and compare it against
@@ -32,6 +32,10 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
           if [ "$?" -eq "1" ]
           then echo ": failed"
             diff -c "out.$i" "trial.$i"
+	    # Stop if our 1st argument is "stop"
+	    if [ $1 = "stop" ]
+	    then exit 1
+	    fi
             echo
 
 	  # No failure, so announce success
