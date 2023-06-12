@@ -53,3 +53,9 @@ dkms.conf
 
 #IDE files
 .idea/
+
+#BUild files
+build/
+
+# Documents
+docs/
