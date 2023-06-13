@@ -1,3 +1,9 @@
+/**
+ * @file expr.c
+ * @author BrunchTea
+ * @brief Parsing of expressions
+ * @attention This file is part of the DSA project by BrunchTea.
+*/
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -16,6 +22,12 @@
 // child being the next expression. Each A_GLUE node will have size field
 // set to the number of expressions in the tree at this point. If no
 // expressions are parsed, NULL is returned
+/**
+ * @fn expression_list
+ * @brief Parse a list of zero or more comma-separated expressions
+ * @param endtoken The token that ends the list
+ * @return An AST composed of A_GLUE nodes with the left-hand child
+*/
 struct ASTnode *expression_list(int endtoken) {
   struct ASTnode *tree = NULL;
   struct ASTnode *child = NULL;
@@ -46,6 +58,11 @@ struct ASTnode *expression_list(int endtoken) {
 }
 
 // Parse a function call and return its AST
+/**
+ * @fn funccall
+ * @brief Parse a function call and return its AST
+ * @return An AST node for the function call
+*/
 static struct ASTnode *funccall(void) {
   struct ASTnode *tree;
   struct symtable *funcptr;
@@ -75,6 +92,12 @@ static struct ASTnode *funccall(void) {
 }
 
 // Parse the index into an array and return an AST tree for it
+/**
+ * @fn array_access
+ * @brief Parse the index into an array and return an AST tree for it
+ * @param left The AST node for the array
+ * @return An AST node for the array index
+*/
 static struct ASTnode *array_access(struct ASTnode *left) {
   struct ASTnode *right;
 
@@ -113,6 +136,13 @@ static struct ASTnode *array_access(struct ASTnode *left) {
 // Parse the member reference of a struct or union
 // and return an AST tree for it. If withpointer is true,
 // the access is through a pointer to the member.
+/**
+ * @fn member_access
+ * @brief Parse the member reference of a struct or union
+ * @param left The AST node for the struct or union
+ * @param withpointer If the access is through a pointer to the member
+ * @return An AST node for the member reference
+*/
 static struct ASTnode *member_access(struct ASTnode *left, int withpointer) {
   struct ASTnode *right;
   struct symtable *typeptr;
@@ -164,6 +194,12 @@ static struct ASTnode *member_access(struct ASTnode *left, int withpointer) {
 
 // Parse a parenthesised expression and
 // return an AST node representing it.
+/**
+ * @fn paren_expression
+ * @brief Parse a parenthesised expression
+ * @param ptp The type of the parenthesised expression
+ * @return An AST node for the parenthesised expression
+*/
 static struct ASTnode *paren_expression(int ptp) {
   struct ASTnode *n;
   int type = 0;
@@ -212,6 +248,12 @@ static struct ASTnode *paren_expression(int ptp) {
 
 // Parse a primary factor and return an
 // AST node representing it.
+/**
+ * @fn primary
+ * @brief Parse a primary factor
+ * @param ptp The type of the primary factor
+ * @return An AST node for the primary factor
+*/
 static struct ASTnode *primary(int ptp) {
   struct ASTnode *n;
   struct symtable *enumptr;
@@ -315,6 +357,12 @@ static struct ASTnode *primary(int ptp) {
 // Parse a postfix expression and return
 // an AST node representing it. The
 // identifier is already in Text.
+/**
+ * @fn postfix
+ * @brief Parse a postfix expression
+ * @param ptp The type of the postfix expression
+ * @return An AST node for the postfix expression
+*/
 static struct ASTnode *postfix(int ptp) {
   struct ASTnode *n;
 
@@ -378,6 +426,12 @@ static struct ASTnode *postfix(int ptp) {
 
 // Convert a binary operator token into a binary AST operation.
 // We rely on a 1:1 mapping from token to AST operation
+/**
+ * @fn binastop
+ * @brief Convert a binary operator token into a binary AST operation
+ * @param tokentype The token type
+ * @return The AST operation
+*/
 static int binastop(int tokentype) {
   if (tokentype > T_EOF && tokentype <= T_MOD)
     return (tokentype);
@@ -387,6 +441,12 @@ static int binastop(int tokentype) {
 
 // Return true if a token is right-associative,
 // false otherwise.
+/**
+ * @fn rightassoc
+ * @brief Return true if a token is right-associative, false otherwise
+ * @param tokentype The token type
+ * @return 1 if the token is right-associative, 0 otherwise
+*/
 static int rightassoc(int tokentype) {
   if (tokentype >= T_ASSIGN && tokentype <= T_ASSLASH)
     return (1);
@@ -395,6 +455,10 @@ static int rightassoc(int tokentype) {
 
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
+/**
+ * @var OpPrec
+ * @brief Operator precedence for each token
+*/
 static int OpPrec[] = {
   0, 10, 10,			// T_EOF, T_ASSIGN, T_ASPLUS,
   10, 10,			// T_ASMINUS, T_ASSTAR,
@@ -411,6 +475,12 @@ static int OpPrec[] = {
 
 // Check that we have a binary operator and
 // return its precedence.
+/**
+ * @fn op_precedence
+ * @brief Check that we have a binary operator and return its precedence
+ * @param tokentype The token type
+ * @return The precedence of the token
+*/
 static int op_precedence(int tokentype) {
   int prec;
   if (tokentype > T_MOD)
@@ -431,6 +501,12 @@ static int op_precedence(int tokentype) {
 
 // Parse a prefix expression and return 
 // a sub-tree representing it.
+/**
+ * @fn prefix
+ * @brief Parse a prefix expression
+ * @param ptp The type of the prefix expression
+ * @return An AST node for the prefix expression
+*/
 static struct ASTnode *prefix(int ptp) {
   struct ASTnode *tree = NULL;
   switch (Token.token) {
@@ -541,6 +617,12 @@ static struct ASTnode *prefix(int ptp) {
 
 // Return an AST tree whose root is a binary operator.
 // Parameter ptp is the previous token's precedence.
+/**
+ * @fn binexpr
+ * @brief Return an AST tree whose root is a binary operator
+ * @param ptp The previous token's precedence
+ * @return An AST node for the binary expression
+*/
 struct ASTnode *binexpr(int ptp) {
   struct ASTnode *left, *right;
   struct ASTnode *ltemp, *rtemp;

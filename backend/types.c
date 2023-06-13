@@ -1,3 +1,9 @@
+/**
+ * @file types.c
+ * @author BrunchTea
+ * @brief Types and type handling
+ * @attention This file is part of the DSA project by BrunchTea.
+*/
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -7,17 +13,35 @@
 
 // Return true if a type is an int type
 // of any size, false otherwise
+/**
+ * @fn inttype
+ * @brief Return true if a type is an int type of any size, false otherwise
+ * @param type The type to be checked
+ * @return True if a type is an int type of any size, false otherwise
+*/
 int inttype(int type) {
   return (((type & 0xf) == 0) && (type >= P_CHAR && type <= P_LONG));
 }
 
 // Return true if a type is of pointer type
+/**
+ * @fn ptrtype
+ * @brief Return true if a type is of pointer type
+ * @param type The type to be checked
+ * @return True if a type is of pointer type
+*/
 int ptrtype(int type) {
   return ((type & 0xf) != 0);
 }
 
 // Given a primitive type, return
 // the type which is a pointer to it
+/**
+ * @fn pointer_to
+ * @brief Given a primitive type, return the type which is a pointer to it
+ * @param type The type to be checked
+ * @return The type which is a pointer to it
+*/
 int pointer_to(int type) {
   if ((type & 0xf) == 0xf)
     fatald("Unrecognised in pointer_to: type", type);
@@ -26,6 +50,12 @@ int pointer_to(int type) {
 
 // Given a primitive pointer type, return
 // the type which it points to
+/**
+ * @fn value_at
+ * @brief Given a primitive pointer type, return the type which it points to
+ * @param type The type to be checked
+ * @return The type which it points to
+*/
 int value_at(int type) {
   if ((type & 0xf) == 0x0)
     fatald("Unrecognised in value_at: type", type);
@@ -34,6 +64,13 @@ int value_at(int type) {
 
 // Given a type and a composite type pointer, return
 // the size of this type in bytes
+/**
+ * @fn typesize(int type, struct symtable *ctype)
+ * @brief Given a type and a composite type pointer, return the size of this type in bytes
+ * @param type The type to be checked
+ * @param *ctype The composite type pointer
+ * @return The size of this type in bytes
+*/
 int typesize(int type, struct symtable *ctype) {
   if (type == P_STRUCT || type == P_UNION)
     return (ctype->size);
@@ -46,6 +83,15 @@ int typesize(int type, struct symtable *ctype) {
 // if no changes occurred, a modified tree, or NULL if the
 // tree is not compatible with the given type.
 // If this will be part of a binary operation, the AST op is not zero.
+/**
+ * @fn modify_type
+ * @brief Given an AST tree and a type which we want it to become, possibly modify the tree by widening or scaling so that it is compatible with this type. Return the original tree if no changes occurred, a modified tree, or NULL if the tree is not compatible with the given type. If this will be part of a binary operation, the AST op is not zero.
+ * @param *tree The AST tree
+ * @param rtype The type which we want it to become
+ * @param *rctype The composite type pointer
+ * @param op The AST op
+ * @return The original tree if no changes occurred, a modified tree, or NULL if the tree is not compatible with the given type
+*/
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
 			    struct symtable *rctype, int op) {
   int ltype;

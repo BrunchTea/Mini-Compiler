@@ -1,14 +1,26 @@
+/**
+ * @file opt.c
+ * @author BrunchTea
+ * @brief Optimisation functions
+ * @attention This file is part of the DSA project by BrunchTea.
+ */
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
 
 // AST Tree Optimisation Code
 
-
 // Fold an AST tree with a binary operator
-// and two A_INTLIT children. Return either 
+// and two A_INTLIT children. Return either
 // the original tree or a new leaf node.
-static struct ASTnode *fold2(struct ASTnode *n) {
+/**
+ * @fn fold2
+ * @brief Fold an AST tree with a binary operator and two A_INTLIT children. Return either the original tree or a new leaf node.
+ * @param n The AST node to be folded
+ * @return The original tree or a new leaf node
+ */
+static struct ASTnode *fold2(struct ASTnode *n)
+{
   int val, leftval, rightval;
 
   // Get the values from each child
@@ -18,24 +30,25 @@ static struct ASTnode *fold2(struct ASTnode *n) {
   // Perform some of the binary operations.
   // For any AST op we can't do, return
   // the original tree.
-  switch (n->op) {
-    case A_ADD:
-      val = leftval + rightval;
-      break;
-    case A_SUBTRACT:
-      val = leftval - rightval;
-      break;
-    case A_MULTIPLY:
-      val = leftval * rightval;
-      break;
-    case A_DIVIDE:
-      // Don't try to divide by zero.
-      if (rightval == 0)
-	return (n);
-      val = leftval / rightval;
-      break;
-    default:
+  switch (n->op)
+  {
+  case A_ADD:
+    val = leftval + rightval;
+    break;
+  case A_SUBTRACT:
+    val = leftval - rightval;
+    break;
+  case A_MULTIPLY:
+    val = leftval * rightval;
+    break;
+  case A_DIVIDE:
+    // Don't try to divide by zero.
+    if (rightval == 0)
       return (n);
+    val = leftval / rightval;
+    break;
+  default:
+    return (n);
   }
 
   // Return a leaf node with the new value
@@ -43,26 +56,34 @@ static struct ASTnode *fold2(struct ASTnode *n) {
 }
 
 // Fold an AST tree with a unary operator
-// and one INTLIT children. Return either 
+// and one INTLIT children. Return either
 // the original tree or a new leaf node.
-static struct ASTnode *fold1(struct ASTnode *n) {
+/**
+ * @fn fold1
+ * @brief Fold an AST tree with a unary operator and one INTLIT children. Return either the original tree or a new leaf node.
+ * @param n The AST node to be folded
+ * @return The original tree or a new leaf node
+ */
+static struct ASTnode *fold1(struct ASTnode *n)
+{
   int val;
 
   // Get the child value. Do the
   // operation if recognised.
   // Return the new leaf node.
   val = n->left->a_intvalue;
-  switch (n->op) {
-    case A_WIDEN:
-      break;
-    case A_INVERT:
-      val = ~val;
-      break;
-    case A_LOGNOT:
-      val = !val;
-      break;
-    default:
-      return (n);
+  switch (n->op)
+  {
+  case A_WIDEN:
+    break;
+  case A_INVERT:
+    val = ~val;
+    break;
+  case A_LOGNOT:
+    val = !val;
+    break;
+  default:
+    return (n);
   }
 
   // Return a leaf node with the new value
@@ -71,7 +92,14 @@ static struct ASTnode *fold1(struct ASTnode *n) {
 
 // Attempt to do constant folding on
 // the AST tree with the root node n
-static struct ASTnode *fold(struct ASTnode *n) {
+/**
+ * @fn fold
+ * @brief Attempt to do constant folding on the AST tree with the root node n
+ * @param n The AST node to be folded
+ * @return folded AST node
+ */
+static struct ASTnode *fold(struct ASTnode *n)
+{
 
   if (n == NULL)
     return (NULL);
@@ -82,7 +110,8 @@ static struct ASTnode *fold(struct ASTnode *n) {
   n->right = fold(n->right);
 
   // If both children are A_INTLITs, do a fold2()
-  if (n->left && n->left->op == A_INTLIT) {
+  if (n->left && n->left->op == A_INTLIT)
+  {
     if (n->right && n->right->op == A_INTLIT)
       n = fold2(n);
     else
@@ -95,7 +124,14 @@ static struct ASTnode *fold(struct ASTnode *n) {
 
 // Optimise an AST tree by
 // constant folding in all sub-trees
-struct ASTnode *optimise(struct ASTnode *n) {
+/**
+ * @fn optimise
+ * @brief Optimise an AST tree by constant folding in all sub-trees
+ * @param n The AST node to be folded
+ * @return optimised AST node
+ */
+struct ASTnode *optimise(struct ASTnode *n)
+{
   n = fold(n);
   return (n);
 }

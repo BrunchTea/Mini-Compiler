@@ -1,20 +1,39 @@
+/**
+ * @file gen.c
+ * @author BrunchTea
+ * @brief Generic code generator
+ * @attention This file is part of the DSA project by BrunchTea.
+ */
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
 
 // Generic code generator
 
-
 // Generate and return a new label number
+/**
+ * @fn int genlabel(void)
+ * @brief Generate and return a new label number
+ * @return A new label number
+ */
 static int labelid = 1;
-int genlabel(void) {
+int genlabel(void)
+{
   return (labelid++);
 }
 
-static void update_line(struct ASTnode *n) {
+/**
+ * @fn void update_line(struct ASTnode *n)
+ * @brief Output the line into the assembly if we've changed the line number in the AST node
+ * @param n The AST node
+ * @return void
+ */
+static void update_line(struct ASTnode *n)
+{
   // Output the line into the assembly if we've
   // changed the line number in the AST node
-  if (n->linenum != 0 && Line != n->linenum) {
+  if (n->linenum != 0 && Line != n->linenum)
+  {
     Line = n->linenum;
     cglinenum(Line);
   }
@@ -22,7 +41,16 @@ static void update_line(struct ASTnode *n) {
 
 // Generate the code for an IF statement
 // and an optional ELSE clause.
-static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
+/**
+ * @fn static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel)
+ * @brief Generate the code for an IF statement and an optional ELSE clause.
+ * @param n The AST node
+ * @param looptoplabel The label for the top of the loop
+ * @param loopendlabel The label for the end of the loop
+ * @return The register number
+ */
+static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel)
+{
   int Lfalse, Lend = 0;
   int r, r2;
 
@@ -46,7 +74,8 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 
   // If there is an optional ELSE clause,
   // generate the jump to skip to the end
-  if (n->right) {
+  if (n->right)
+  {
     // QBE doesn't like two jump instructions in a row, and
     // a break at the end of a true IF section causes this. The
     // solution is to insert a label before the IF jump.
@@ -59,7 +88,8 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
   // Optional ELSE clause: generate the
   // false compound statement and the
   // end label
-  if (n->right) {
+  if (n->right)
+  {
     genAST(n->right, NOLABEL, NOLABEL, loopendlabel, n->op);
     cglabel(Lend);
   }
@@ -68,7 +98,14 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 }
 
 // Generate the code for a WHILE statement
-static int genWHILE(struct ASTnode *n) {
+/**
+ * @fn static int genWHILE(struct ASTnode *n)
+ * @brief Generate the code for a WHILE statement
+ * @param n The AST node
+ * @return The register number
+ */
+static int genWHILE(struct ASTnode *n)
+{
   int Lstart, Lend;
   int r, r2;
 
@@ -95,7 +132,14 @@ static int genWHILE(struct ASTnode *n) {
 }
 
 // Generate the code for a SWITCH statement
-static int genSWITCH(struct ASTnode *n) {
+/**
+ * @fn static int genSWITCH(struct ASTnode *n)
+ * @brief Generate the code for a SWITCH statement
+ * @param n The AST node
+ * @return The register number
+ */
+static int genSWITCH(struct ASTnode *n)
+{
   int *caselabel;
   int Lend;
   int Lcode = 0;
@@ -103,7 +147,7 @@ static int genSWITCH(struct ASTnode *n) {
   struct ASTnode *c;
 
   // Create an array for the case labels
-  caselabel = (int *) malloc((n->a_intvalue + 1) * sizeof(int));
+  caselabel = (int *)malloc((n->a_intvalue + 1) * sizeof(int));
   if (caselabel == NULL)
     fatal("malloc failed in genSWITCH");
 
@@ -127,7 +171,8 @@ static int genSWITCH(struct ASTnode *n) {
 
   // Walk the right-child linked list to
   // generate the code for each case
-  for (i = 0, c = n->right; c != NULL; i++, c = c->right) {
+  for (i = 0, c = n->right; c != NULL; i++, c = c->right)
+  {
 
     // Generate a label for the actual code that the cases will fall down to
     if (Lcode == 0)
@@ -137,7 +182,8 @@ static int genSWITCH(struct ASTnode *n) {
     cglabel(caselabel[i]);
 
     // Do the comparison and jump, but not if it's the default case
-    if (c->op != A_DEFAULT) {
+    if (c->op != A_DEFAULT)
+    {
       // Jump to the next case if the value doesn't match the case value
       r2 = cgloadint(c->a_intvalue, type);
       cgcompare_and_jump(A_EQ, reg, r2, caselabel[i + 1], type);
@@ -148,7 +194,8 @@ static int genSWITCH(struct ASTnode *n) {
     // Generate the case code. Pass in the end label for the breaks.
     // If case has no body, we will fall into the following body.
     // Reset Lcode so we will create a new code label on the next loop.
-    if (c->left) {
+    if (c->left)
+    {
       cglabel(Lcode);
       genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
       Lcode = 0;
@@ -162,7 +209,14 @@ static int genSWITCH(struct ASTnode *n) {
 
 // Generate the code for an
 // A_LOGAND or A_LOGOR operation
-static int gen_logandor(struct ASTnode *n) {
+/**
+ * @fn static int gen_logandor(struct ASTnode *n)
+ * @brief Generate the code for an A_LOGAND or A_LOGOR operation
+ * @param n The AST node
+ * @return The register number
+ */
+static int gen_logandor(struct ASTnode *n)
+{
   // Generate two labels
   int Lfalse = genlabel();
   int Lend = genlabel();
@@ -182,12 +236,15 @@ static int gen_logandor(struct ASTnode *n) {
   cgboolean(reg, n->op, Lfalse, type);
 
   // We didn't jump so set the right boolean value
-  if (n->op == A_LOGAND) {
+  if (n->op == A_LOGAND)
+  {
     cgloadboolean(reg, 1, type);
     cgjump(Lend);
     cglabel(Lfalse);
     cgloadboolean(reg, 0, type);
-  } else {
+  }
+  else
+  {
     cgloadboolean(reg, 0, type);
     cgjump(Lend);
     cglabel(Lfalse);
@@ -201,14 +258,22 @@ static int gen_logandor(struct ASTnode *n) {
 // function call, then call the function with these
 // arguments. Return the temoprary that holds
 // the function's return value.
-static int gen_funccall(struct ASTnode *n) {
+/**
+ * @fn static int gen_funccall(struct ASTnode *n)
+ * @brief Generate the code to calculate the arguments of a function call, then call the function with these arguments.
+ * @param n The AST node
+ * @return Return the temoprary that holds the function's return value.
+ */
+static int gen_funccall(struct ASTnode *n)
+{
   struct ASTnode *gluetree;
   int i = 0, numargs = 0;
   int *arglist = NULL;
   int *typelist = NULL;
 
   // Determine the actual number of arguments
-  for (gluetree = n->left; gluetree != NULL; gluetree = gluetree->left) {
+  for (gluetree = n->left; gluetree != NULL; gluetree = gluetree->left)
+  {
     numargs++;
   }
 
@@ -217,21 +282,23 @@ static int gen_funccall(struct ASTnode *n) {
   for (i = 0, gluetree = n->left; gluetree != NULL; gluetree = gluetree->left)
     i++;
 
-  if (i != 0) {
-    arglist = (int *) malloc(i * sizeof(int));
+  if (i != 0)
+  {
+    arglist = (int *)malloc(i * sizeof(int));
     if (arglist == NULL)
       fatal("malloc failed in gen_funccall");
-    typelist = (int *) malloc(i * sizeof(int));
+    typelist = (int *)malloc(i * sizeof(int));
     if (typelist == NULL)
       fatal("malloc failed in gen_funccall");
   }
   // If there is a list of arguments, walk this list
   // from the last argument (right-hand child) to the first.
   // Also cache the type of each expression
-  for (i = 0, gluetree = n->left; gluetree != NULL; gluetree = gluetree->left) {
+  for (i = 0, gluetree = n->left; gluetree != NULL; gluetree = gluetree->left)
+  {
     // Calculate the expression's value
     arglist[i] =
-      genAST(gluetree->right, NOLABEL, NOLABEL, NOLABEL, gluetree->op);
+        genAST(gluetree->right, NOLABEL, NOLABEL, NOLABEL, gluetree->op);
     typelist[i++] = gluetree->right->type;
   }
 
@@ -240,7 +307,14 @@ static int gen_funccall(struct ASTnode *n) {
 }
 
 // Generate code for a ternary expression
-static int gen_ternary(struct ASTnode *n) {
+/**
+ * @fn static int gen_ternary(struct ASTnode *n)
+ * @brief Generate code for a ternary expression
+ * @param n The AST node
+ * @return The register number
+ */
+static int gen_ternary(struct ASTnode *n)
+{
   int Lfalse, Lend;
   int reg, expreg;
   int r, r2;
@@ -278,8 +352,19 @@ static int gen_ternary(struct ASTnode *n) {
 // Given an AST, an optional label, and the AST op
 // of the parent, generate assembly code recursively.
 // Return the temporary id with the tree's final value.
+/**
+ * @fn int genAST(struct ASTnode *n, int iflabel, int looptoplabel, int loopendlabel, int parentASTop)
+ * @brief Given an AST, an optional label, and the AST op of the parent, generate assembly code recursively.
+ * @param n The AST node
+ * @param iflabel The label
+ * @param looptoplabel The label
+ * @param loopendlabel The label
+ * @param parentASTop The AST op of the parent
+ * @return The temporary id with the tree's final value.
+ */
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
-	   int loopendlabel, int parentASTop) {
+           int loopendlabel, int parentASTop)
+{
   int leftreg = NOREG, rightreg = NOREG;
   int lefttype = P_VOID, type = P_VOID;
   struct symtable *leftsym = NULL;
@@ -293,236 +378,293 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 
   // We have some specific AST node handling at the top
   // so that we don't evaluate the child sub-trees immediately
-  switch (n->op) {
-    case A_IF:
-      return (genIF(n, looptoplabel, loopendlabel));
-    case A_WHILE:
-      return (genWHILE(n));
-    case A_SWITCH:
-      return (genSWITCH(n));
-    case A_FUNCCALL:
-      return (gen_funccall(n));
-    case A_TERNARY:
-      return (gen_ternary(n));
-    case A_LOGOR:
-      return (gen_logandor(n));
-    case A_LOGAND:
-      return (gen_logandor(n));
-    case A_GLUE:
-      // Do each child statement, and free the
-      // temporaries after each child
-      if (n->left != NULL)
-	genAST(n->left, iflabel, looptoplabel, loopendlabel, n->op);
-      if (n->right != NULL)
-	genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
-      return (NOREG);
-    case A_FUNCTION:
-      // Generate the function's preamble before the code
-      // in the child sub-tree
-      cgfuncpreamble(n->sym);
-      genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
-      cgfuncpostamble(n->sym);
-      return (NOREG);
+  switch (n->op)
+  {
+  case A_IF:
+    return (genIF(n, looptoplabel, loopendlabel));
+  case A_WHILE:
+    return (genWHILE(n));
+  case A_SWITCH:
+    return (genSWITCH(n));
+  case A_FUNCCALL:
+    return (gen_funccall(n));
+  case A_TERNARY:
+    return (gen_ternary(n));
+  case A_LOGOR:
+    return (gen_logandor(n));
+  case A_LOGAND:
+    return (gen_logandor(n));
+  case A_GLUE:
+    // Do each child statement, and free the
+    // temporaries after each child
+    if (n->left != NULL)
+      genAST(n->left, iflabel, looptoplabel, loopendlabel, n->op);
+    if (n->right != NULL)
+      genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
+    return (NOREG);
+  case A_FUNCTION:
+    // Generate the function's preamble before the code
+    // in the child sub-tree
+    cgfuncpreamble(n->sym);
+    genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+    cgfuncpostamble(n->sym);
+    return (NOREG);
   }
 
   // General AST node handling below
 
   // Get the left and right sub-tree values. Also get the type
-  if (n->left) {
+  if (n->left)
+  {
     lefttype = type = n->left->type;
     leftsym = n->left->sym;
     leftreg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
   }
-  if (n->right) {
+  if (n->right)
+  {
     type = n->right->type;
     rightreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
   }
 
-  switch (n->op) {
-    case A_ADD:
-      return (cgadd(leftreg, rightreg, type));
-    case A_SUBTRACT:
-      return (cgsub(leftreg, rightreg, type));
-    case A_MULTIPLY:
-      return (cgmul(leftreg, rightreg, type));
-    case A_DIVIDE:
-      return (cgdivmod(leftreg, rightreg, A_DIVIDE, type));
-    case A_MOD:
-      return (cgdivmod(leftreg, rightreg, A_MOD, type));
-    case A_AND:
-      return (cgand(leftreg, rightreg, type));
-    case A_OR:
-      return (cgor(leftreg, rightreg, type));
-    case A_XOR:
-      return (cgxor(leftreg, rightreg, type));
-    case A_LSHIFT:
-      return (cgshl(leftreg, rightreg, type));
-    case A_RSHIFT:
-      return (cgshr(leftreg, rightreg, type));
-    case A_EQ:
-    case A_NE:
-    case A_LT:
-    case A_GT:
-    case A_LE:
-    case A_GE:
-      return (cgcompare_and_set(n->op, leftreg, rightreg, lefttype));
-    case A_INTLIT:
-      return (cgloadint(n->a_intvalue, n->type));
-    case A_STRLIT:
-      return (cgloadglobstr(n->a_intvalue));
-    case A_IDENT:
-      // Load our value if we are an rvalue
-      // or we are being dereferenced
-      if (n->rvalue || parentASTop == A_DEREF) {
-	return (cgloadvar(n->sym, n->op));
-      } else
-	return (NOREG);
-    case A_ASPLUS:
-    case A_ASMINUS:
-    case A_ASSTAR:
-    case A_ASSLASH:
-    case A_ASMOD:
-    case A_ASSIGN:
-
-      // For the '+=' and friends operators, generate suitable code
-      // and get the temporary with the result. Then take the left child,
-      // make it the right child so that we can fall into the assignment code.
-      switch (n->op) {
-	case A_ASPLUS:
-	  leftreg = cgadd(leftreg, rightreg, type);
-	  n->right = n->left;
-	  break;
-	case A_ASMINUS:
-	  leftreg = cgsub(leftreg, rightreg, type);
-	  n->right = n->left;
-	  break;
-	case A_ASSTAR:
-	  leftreg = cgmul(leftreg, rightreg, type);
-	  n->right = n->left;
-	  break;
-	case A_ASSLASH:
-	  leftreg = cgdivmod(leftreg, rightreg, A_DIVIDE, type);
-	  n->right = n->left;
-	  break;
-	case A_ASMOD:
-	  leftreg = cgdivmod(leftreg, rightreg, A_MOD, type);
-	  n->right = n->left;
-	  break;
-      }
-
-      // Now into the assignment code
-      // Are we assigning to an identifier or through a pointer?
-      switch (n->right->op) {
-	case A_IDENT:
-	  if (n->right->sym->class == C_GLOBAL ||
-	      n->right->sym->class == C_EXTERN ||
-	      n->right->sym->class == C_STATIC)
-	    return (cgstorglob(leftreg, n->right->sym));
-	  else
-	    return (cgstorlocal(leftreg, n->right->sym));
-	case A_DEREF:
-	  return (cgstorderef(leftreg, rightreg, n->right->type));
-	default:
-	  fatald("Can't A_ASSIGN in genAST(), op", n->op);
-      }
-    case A_WIDEN:
-      // Widen the child's type to the parent's type
-      return (cgwiden(leftreg, lefttype, n->type));
-    case A_RETURN:
-      cgreturn(leftreg, Functionid);
-      return (NOREG);
-    case A_ADDR:
-      // If we have a symbol, get its address. Otherwise,
-      // the left temporary already has the address because
-      // it's a member access
-      if (n->sym != NULL)
-	return (cgaddress(n->sym));
-      else
-	return (leftreg);
-    case A_DEREF:
-      // If we are an rvalue, dereference to get the value we point at,
-      // otherwise leave it for A_ASSIGN to store through the pointer
-      if (n->rvalue)
-	return (cgderef(leftreg, lefttype));
-      else
-	return (leftreg);
-    case A_SCALE:
-      // Small optimisation: use shift if the
-      // scale value is a known power of two
-      switch (n->a_size) {
-	case 2:
-	  return (cgshlconst(leftreg, 1, type));
-	case 4:
-	  return (cgshlconst(leftreg, 2, type));
-	case 8:
-	  return (cgshlconst(leftreg, 3, type));
-	default:
-	  // Load a temporary with the size and
-	  // multiply the leftreg by this size
-	  rightreg = cgloadint(n->a_size, P_INT);
-	  return (cgmul(leftreg, rightreg, type));
-      }
-    case A_POSTINC:
-    case A_POSTDEC:
-      // Load and decrement the variable's value into a temporary
-      // and post increment/decrement it
+  switch (n->op)
+  {
+  case A_ADD:
+    return (cgadd(leftreg, rightreg, type));
+  case A_SUBTRACT:
+    return (cgsub(leftreg, rightreg, type));
+  case A_MULTIPLY:
+    return (cgmul(leftreg, rightreg, type));
+  case A_DIVIDE:
+    return (cgdivmod(leftreg, rightreg, A_DIVIDE, type));
+  case A_MOD:
+    return (cgdivmod(leftreg, rightreg, A_MOD, type));
+  case A_AND:
+    return (cgand(leftreg, rightreg, type));
+  case A_OR:
+    return (cgor(leftreg, rightreg, type));
+  case A_XOR:
+    return (cgxor(leftreg, rightreg, type));
+  case A_LSHIFT:
+    return (cgshl(leftreg, rightreg, type));
+  case A_RSHIFT:
+    return (cgshr(leftreg, rightreg, type));
+  case A_EQ:
+  case A_NE:
+  case A_LT:
+  case A_GT:
+  case A_LE:
+  case A_GE:
+    return (cgcompare_and_set(n->op, leftreg, rightreg, lefttype));
+  case A_INTLIT:
+    return (cgloadint(n->a_intvalue, n->type));
+  case A_STRLIT:
+    return (cgloadglobstr(n->a_intvalue));
+  case A_IDENT:
+    // Load our value if we are an rvalue
+    // or we are being dereferenced
+    if (n->rvalue || parentASTop == A_DEREF)
+    {
       return (cgloadvar(n->sym, n->op));
-    case A_PREINC:
-    case A_PREDEC:
-      // Load and decrement the variable's value into a temporary
-      // and pre increment/decrement it
-      return (cgloadvar(leftsym, n->op));
-    case A_NEGATE:
-      return (cgnegate(leftreg, type));
-    case A_INVERT:
-      return (cginvert(leftreg, type));
-    case A_LOGNOT:
-      return (cglognot(leftreg, type));
-    case A_TOBOOL:
-      // If the parent AST node is an A_IF or A_WHILE, generate
-      // a compare followed by a jump. Otherwise, set the temporary
-      // to 0 or 1 based on it's zeroeness or non-zeroeness
-      return (cgboolean(leftreg, parentASTop, iflabel, type));
-    case A_BREAK:
-      cgjump(loopendlabel);
+    }
+    else
       return (NOREG);
-    case A_CONTINUE:
-      cgjump(looptoplabel);
-      return (NOREG);
-    case A_CAST:
-      return (cgcast(leftreg, lefttype, n->type));
+  case A_ASPLUS:
+  case A_ASMINUS:
+  case A_ASSTAR:
+  case A_ASSLASH:
+  case A_ASMOD:
+  case A_ASSIGN:
+
+    // For the '+=' and friends operators, generate suitable code
+    // and get the temporary with the result. Then take the left child,
+    // make it the right child so that we can fall into the assignment code.
+    switch (n->op)
+    {
+    case A_ASPLUS:
+      leftreg = cgadd(leftreg, rightreg, type);
+      n->right = n->left;
+      break;
+    case A_ASMINUS:
+      leftreg = cgsub(leftreg, rightreg, type);
+      n->right = n->left;
+      break;
+    case A_ASSTAR:
+      leftreg = cgmul(leftreg, rightreg, type);
+      n->right = n->left;
+      break;
+    case A_ASSLASH:
+      leftreg = cgdivmod(leftreg, rightreg, A_DIVIDE, type);
+      n->right = n->left;
+      break;
+    case A_ASMOD:
+      leftreg = cgdivmod(leftreg, rightreg, A_MOD, type);
+      n->right = n->left;
+      break;
+    }
+
+    // Now into the assignment code
+    // Are we assigning to an identifier or through a pointer?
+    switch (n->right->op)
+    {
+    case A_IDENT:
+      if (n->right->sym->class == C_GLOBAL ||
+          n->right->sym->class == C_EXTERN ||
+          n->right->sym->class == C_STATIC)
+        return (cgstorglob(leftreg, n->right->sym));
+      else
+        return (cgstorlocal(leftreg, n->right->sym));
+    case A_DEREF:
+      return (cgstorderef(leftreg, rightreg, n->right->type));
     default:
-      fatald("Unknown AST operator", n->op);
+      fatald("Can't A_ASSIGN in genAST(), op", n->op);
+    }
+  case A_WIDEN:
+    // Widen the child's type to the parent's type
+    return (cgwiden(leftreg, lefttype, n->type));
+  case A_RETURN:
+    cgreturn(leftreg, Functionid);
+    return (NOREG);
+  case A_ADDR:
+    // If we have a symbol, get its address. Otherwise,
+    // the left temporary already has the address because
+    // it's a member access
+    if (n->sym != NULL)
+      return (cgaddress(n->sym));
+    else
+      return (leftreg);
+  case A_DEREF:
+    // If we are an rvalue, dereference to get the value we point at,
+    // otherwise leave it for A_ASSIGN to store through the pointer
+    if (n->rvalue)
+      return (cgderef(leftreg, lefttype));
+    else
+      return (leftreg);
+  case A_SCALE:
+    // Small optimisation: use shift if the
+    // scale value is a known power of two
+    switch (n->a_size)
+    {
+    case 2:
+      return (cgshlconst(leftreg, 1, type));
+    case 4:
+      return (cgshlconst(leftreg, 2, type));
+    case 8:
+      return (cgshlconst(leftreg, 3, type));
+    default:
+      // Load a temporary with the size and
+      // multiply the leftreg by this size
+      rightreg = cgloadint(n->a_size, P_INT);
+      return (cgmul(leftreg, rightreg, type));
+    }
+  case A_POSTINC:
+  case A_POSTDEC:
+    // Load and decrement the variable's value into a temporary
+    // and post increment/decrement it
+    return (cgloadvar(n->sym, n->op));
+  case A_PREINC:
+  case A_PREDEC:
+    // Load and decrement the variable's value into a temporary
+    // and pre increment/decrement it
+    return (cgloadvar(leftsym, n->op));
+  case A_NEGATE:
+    return (cgnegate(leftreg, type));
+  case A_INVERT:
+    return (cginvert(leftreg, type));
+  case A_LOGNOT:
+    return (cglognot(leftreg, type));
+  case A_TOBOOL:
+    // If the parent AST node is an A_IF or A_WHILE, generate
+    // a compare followed by a jump. Otherwise, set the temporary
+    // to 0 or 1 based on it's zeroeness or non-zeroeness
+    return (cgboolean(leftreg, parentASTop, iflabel, type));
+  case A_BREAK:
+    cgjump(loopendlabel);
+    return (NOREG);
+  case A_CONTINUE:
+    cgjump(looptoplabel);
+    return (NOREG);
+  case A_CAST:
+    return (cgcast(leftreg, lefttype, n->type));
+  default:
+    fatald("Unknown AST operator", n->op);
   }
-  return (NOREG);		// Keep -Wall happy
+  return (NOREG); // Keep -Wall happy
 }
 
-void genpreamble(char *filename) {
+/**
+ * @fn void genpreamble(char *filename)
+ * @brief Generate the preamble for the assembly file.
+ * @param filename The name of the assembly file.
+ */
+
+void genpreamble(char *filename)
+{
   cgpreamble(filename);
 }
 
-void genpostamble() {
+/**
+ * @fn void genpostamble(void)
+ * @brief Generate the postamble for the assembly file.
+ */
+void genpostamble()
+{
   cgpostamble();
 }
 
-void genglobsym(struct symtable *node) {
+/**
+ * @fn void genfreeregs(void)
+ * @brief Generate code to free all registers.
+ */
+void genglobsym(struct symtable *node)
+{
   cgglobsym(node);
 }
 
 // Generate a global string.
 // If append is true, append to
 // previous genglobstr() call.
-int genglobstr(char *strvalue, int append) {
+/**
+ * @fn int genglobstr(char *strvalue, int append)
+ * @brief Generate a global string.
+ * @param strvalue The string to generate.
+ * @param append If true, append to previous genglobstr() call.
+ * @return The label of the string.
+ */
+int genglobstr(char *strvalue, int append)
+{
   int l = genlabel();
   cgglobstr(l, strvalue, append);
   return (l);
 }
-void genglobstrend(void) {
+
+/**
+ * @fn genglobstrend(void)
+ * @brief Generate the end of the global strings.
+ *
+ */
+void genglobstrend(void)
+{
   cgglobstrend();
 }
-int genprimsize(int type) {
+/**
+ * @fn int genprimsize(int type)
+ * @brief Generate the size of a primitive type.
+ * @param type The type to generate the size of.
+ * @return The size of the type.
+ */
+int genprimsize(int type)
+{
   return (cgprimsize(type));
 }
-int genalign(int type, int offset, int direction) {
+/**
+ * @fn int genalign(int type, int offset, int direction)
+ * @brief Generate the alignment of a type.
+ * @param type The type to generate the alignment of.
+ * @param offset The offset of the type.
+ * @param direction The direction of the type.
+ * @return The alignment of the type.
+*/
+int genalign(int type, int offset, int direction)
+{
   return (cgalign(type, offset, direction));
 }

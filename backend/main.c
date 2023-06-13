@@ -1,3 +1,10 @@
+/**
+ * @file main.c
+ * @author BrunchTea
+ * @category Compiler
+ * @brief Compiler setup and top-level execution
+ * @attention This file is part of the DSA project by BrunchTea.
+ */
 #include "defs.h"
 #define extern_
 #include "data.h"
@@ -8,12 +15,19 @@
 
 // Compiler setup and top-level execution
 
-
 // Given a string with a '.' and at least a 1-character suffix
 // after the '.', change the suffix to be the given character.
 // Return the new string or NULL if the original string could
 // not be modified
-char *alter_suffix(char *str, char suffix) {
+/**
+ * @fn *alter_suffix
+ * @brief Given a string with a '.' and at least a 1-character suffix after the '.', change the suffix to be the given character.
+ * @param *str The string to be modified
+ * @param suffix The character to be changed to
+ * @return The new string or NULL if the original string could not be modified
+ */
+char *alter_suffix(char *str, char suffix)
+{
   char *posn;
   char *newstr;
 
@@ -39,12 +53,20 @@ char *alter_suffix(char *str, char suffix) {
 
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
-static char *do_compile(char *filename) {
+/**
+ * @fn *do_compile
+ * @brief Given an input filename, compile that file down to assembly code.
+ * @param *filename The input filename
+ * @return The new file's name
+ */
+static char *do_compile(char *filename)
+{
   char cmd[TEXTLEN];
 
   // Change the input file's suffix to .q
   Outfilename = alter_suffix(filename, 'q');
-  if (Outfilename == NULL) {
+  if (Outfilename == NULL)
+  {
     fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
     exit(1);
   }
@@ -52,53 +74,64 @@ static char *do_compile(char *filename) {
   snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
 
   // Open up the pre-processor pipe
-  if ((Infile = popen(cmd, "r")) == NULL) {
+  if ((Infile = popen(cmd, "r")) == NULL)
+  {
     fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
     exit(1);
   }
   Infilename = filename;
 
   // Create the output file
-  if ((Outfile = fopen(Outfilename, "w")) == NULL) {
+  if ((Outfile = fopen(Outfilename, "w")) == NULL)
+  {
     fprintf(stderr, "Unable to create %s: %s\n", Outfilename,
-	    strerror(errno));
+            strerror(errno));
     exit(1);
   }
 
-  Line = 1;			// Reset the scanner
+  Line = 1; // Reset the scanner
   Linestart = 1;
   Putback = '\n';
-  clear_symtable();		// Clear the symbol table
+  clear_symtable(); // Clear the symbol table
   if (O_verbose)
     printf("compiling %s\n", filename);
-  scan(&Token);			// Get the first token from the input
-  Peektoken.token = 0;		// and set there is no lookahead token
-  genpreamble(filename);	// Output the preamble
-  global_declarations();	// Parse the global declarations
-  genpostamble();		// Output the postamble
-  fclose(Outfile);		// Close the output file
+  scan(&Token);          // Get the first token from the input
+  Peektoken.token = 0;   // and set there is no lookahead token
+  genpreamble(filename); // Output the preamble
+  global_declarations(); // Parse the global declarations
+  genpostamble();        // Output the postamble
+  fclose(Outfile);       // Close the output file
 
   // Dump the symbol table if requested
-  if (O_dumpsym) {
+  if (O_dumpsym)
+  {
     printf("Symbols for %s\n", filename);
     dumpsymtables();
     fprintf(stdout, "\n\n");
   }
 
-  freestaticsyms();		// Free any static symbols in the file
+  freestaticsyms(); // Free any static symbols in the file
   return (Outfilename);
 }
 
 // Given an input filename, run QBE on the file and
 // produce an assembly file. Return the object filename
-char *do_qbe(char *filename) {
+/**
+ * @fn *do_qbe
+ * @brief Given an input filename, run QBE on the file and produce an assembly file.
+ * @param *filename The input filename
+ * @return The object filename
+ */
+char *do_qbe(char *filename)
+{
   char cmd[TEXTLEN];
   int err;
 
   char *outfilename = alter_suffix(filename, 's');
-  if (outfilename == NULL) {
+  if (outfilename == NULL)
+  {
     fprintf(stderr, "Error: %s has no suffix, try .qbe on the end\n",
-	    filename);
+            filename);
     exit(1);
   }
   // Build the QBE command and run it
@@ -106,7 +139,8 @@ char *do_qbe(char *filename) {
   if (O_verbose)
     printf("%s\n", cmd);
   err = system(cmd);
-  if (err != 0) {
+  if (err != 0)
+  {
     fprintf(stderr, "QBE translation of %s failed\n", filename);
     exit(1);
   }
@@ -115,12 +149,20 @@ char *do_qbe(char *filename) {
 
 // Given an input filename, assemble that file
 // down to object code. Return the object filename
-char *do_assemble(char *filename) {
+/**
+ * @fn *do_assemble
+ * @brief Given an input filename, assemble that file down to object code.
+ * @param *filename The input filename
+ * @return The object filename
+ */
+char *do_assemble(char *filename)
+{
   char cmd[TEXTLEN];
   int err;
 
   char *outfilename = alter_suffix(filename, 'o');
-  if (outfilename == NULL) {
+  if (outfilename == NULL)
+  {
     fprintf(stderr, "Error: %s has no suffix, try .s on the end\n", filename);
     exit(1);
   }
@@ -129,7 +171,8 @@ char *do_assemble(char *filename) {
   if (O_verbose)
     printf("%s\n", cmd);
   err = system(cmd);
-  if (err != 0) {
+  if (err != 0)
+  {
     fprintf(stderr, "Assembly of %s failed\n", filename);
     exit(1);
   }
@@ -138,7 +181,14 @@ char *do_assemble(char *filename) {
 
 // Given a list of object files and an output filename,
 // link all of the object filenames together.
-void do_link(char *outfilename, char **objlist) {
+/**
+ * @fn *do_link
+ * @brief Given a list of object files and an output filename, link all of the object filenames together.
+ * @param *outfilename The output filename
+ * @param **objlist The list of object files
+ */
+void do_link(char *outfilename, char **objlist)
+{
   int cnt, size = TEXTLEN;
   char cmd[TEXTLEN], *cptr;
   int err;
@@ -150,7 +200,8 @@ void do_link(char *outfilename, char **objlist) {
   size -= cnt;
 
   // Now append each object file
-  while (*objlist != NULL) {
+  while (*objlist != NULL)
+  {
     cnt = snprintf(cptr, size, "%s ", *objlist);
     cptr += cnt;
     size -= cnt;
@@ -160,17 +211,24 @@ void do_link(char *outfilename, char **objlist) {
   if (O_verbose)
     printf("%s\n", cmd);
   err = system(cmd);
-  if (err != 0) {
+  if (err != 0)
+  {
     fprintf(stderr, "Linking failed\n");
     exit(1);
   }
 }
 
 // Print out a usage if started incorrectly
-static void usage(char *prog) {
+/**
+ * @fn *usage
+ * @brief Print out a usage if started incorrectly
+ * @param *prog The program name
+ */
+static void usage(char *prog)
+{
   fprintf(stderr, "Usage: %s [-vcSTM] [-o outfile] file [file ...]\n", prog);
   fprintf(stderr,
-	  "       -v give verbose output of the compilation stages\n");
+          "       -v give verbose output of the compilation stages\n");
   fprintf(stderr, "       -c generate object files but don't link them\n");
   fprintf(stderr, "       -S generate assembly files but don't link them\n");
   fprintf(stderr, "       -T dump the AST trees for each input file\n");
@@ -182,8 +240,19 @@ static void usage(char *prog) {
 // Main program: check arguments and print a usage
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
-enum { MAXOBJ = 100 };
-int main(int argc, char **argv) {
+enum
+{
+  MAXOBJ = 100
+};
+/**
+ * @fn main
+ * @brief Main program: check arguments and print a usage if we don't have an argument.
+ * @param argc The number of arguments
+ * @param **argv The arguments
+ * @return 0
+ */
+int main(int argc, char **argv)
+{
   char *outfilename = AOUT;
   char *qbefile, *asmfile, *objfile;
   char *objlist[MAXOBJ];
@@ -198,38 +267,41 @@ int main(int argc, char **argv) {
   O_dolink = 1;
 
   // Scan for command-line options
-  for (i = 1; i < argc; i++) {
+  for (i = 1; i < argc; i++)
+  {
     // No leading '-', stop scanning for options
     if (*argv[i] != '-')
       break;
 
     // For each option in this argument
-    for (j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
-      switch (argv[i][j]) {
-	case 'o':
-	  outfilename = argv[++i];	// Save & skip to next argument
-	  break;
-	case 'T':
-	  O_dumpAST = 1;
-	  break;
-	case 'M':
-	  O_dumpsym = 1;
-	  break;
-	case 'c':
-	  O_assemble = 1;
-	  O_keepasm = 0;
-	  O_dolink = 0;
-	  break;
-	case 'S':
-	  O_keepasm = 1;
-	  O_assemble = 0;
-	  O_dolink = 0;
-	  break;
-	case 'v':
-	  O_verbose = 1;
-	  break;
-	default:
-	  usage(argv[0]);
+    for (j = 1; (*argv[i] == '-') && argv[i][j]; j++)
+    {
+      switch (argv[i][j])
+      {
+      case 'o':
+        outfilename = argv[++i]; // Save & skip to next argument
+        break;
+      case 'T':
+        O_dumpAST = 1;
+        break;
+      case 'M':
+        O_dumpsym = 1;
+        break;
+      case 'c':
+        O_assemble = 1;
+        O_keepasm = 0;
+        O_dolink = 0;
+        break;
+      case 'S':
+        O_keepasm = 1;
+        O_assemble = 0;
+        O_dolink = 0;
+        break;
+      case 'v':
+        O_verbose = 1;
+        break;
+      default:
+        usage(argv[0]);
       }
     }
   }
@@ -239,36 +311,42 @@ int main(int argc, char **argv) {
     usage(argv[0]);
 
   // Work on each input file in turn
-  while (i < argc) {
-    qbefile = do_compile(argv[i]);	// Compile the source file
+  while (i < argc)
+  {
+    qbefile = do_compile(argv[i]); // Compile the source file
     asmfile = do_qbe(qbefile);
 
-    if (O_dolink || O_assemble) {
-      objfile = do_assemble(asmfile);	// Assemble it to object forma
-      if (objcnt == (MAXOBJ - 2)) {
-	fprintf(stderr, "Too many object files for the compiler to handle\n");
-	exit(1);
+    if (O_dolink || O_assemble)
+    {
+      objfile = do_assemble(asmfile); // Assemble it to object forma
+      if (objcnt == (MAXOBJ - 2))
+      {
+        fprintf(stderr, "Too many object files for the compiler to handle\n");
+        exit(1);
       }
-      objlist[objcnt++] = objfile;	// Add the object file's name
-      objlist[objcnt] = NULL;	// to the list of object files
+      objlist[objcnt++] = objfile; // Add the object file's name
+      objlist[objcnt] = NULL;      // to the list of object files
     }
 
-    if (!O_keepasm) {		// Remove the QBE and assembly files
-      unlink(qbefile);		// if we don't need to keep them
+    if (!O_keepasm)
+    {                  // Remove the QBE and assembly files
+      unlink(qbefile); // if we don't need to keep them
       unlink(asmfile);
     }
     i++;
   }
 
   // Now link all the object files together
-  if (O_dolink) {
+  if (O_dolink)
+  {
     do_link(outfilename, objlist);
 
     // If we don't need to keep the object
     // files, then remove them
-    if (!O_assemble) {
+    if (!O_assemble)
+    {
       for (i = 0; objlist[i] != NULL; i++)
-	unlink(objlist[i]);
+        unlink(objlist[i]);
     }
   }
 

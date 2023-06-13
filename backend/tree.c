@@ -1,3 +1,9 @@
+/**
+ * @file tree.c
+ * @author BrunchTea
+ * @brief AST tree functions
+ * @attention This file is part of the DSA project by BrunchTea.
+*/
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
@@ -6,6 +12,19 @@
 
 
 // Build and return a generic AST node
+/**
+ * @fn mkastnode
+ * @brief Build and return a generic AST node
+ * @param op The operator
+ * @param type The type
+ * @param ctype The ctype
+ * @param left The left child
+ * @param mid The middle child
+ * @param right The right child
+ * @param sym The symbol table
+ * @param intvalue The integer value
+ * @return The AST node
+*/
 struct ASTnode *mkastnode(int op, int type,
 			  struct symtable *ctype,
 			  struct ASTnode *left,
@@ -34,6 +53,16 @@ struct ASTnode *mkastnode(int op, int type,
 
 
 // Make an AST leaf node
+/**
+ * @fn mkastleaf
+ * @brief Make an AST leaf node
+ * @param op The operator
+ * @param type The type
+ * @param ctype The ctype
+ * @param sym The symbol table
+ * @param intvalue The integer value
+ * @return The AST node
+*/
 struct ASTnode *mkastleaf(int op, int type,
 			  struct symtable *ctype,
 			  struct symtable *sym, int intvalue) {
@@ -41,6 +70,17 @@ struct ASTnode *mkastleaf(int op, int type,
 }
 
 // Make a unary AST node: only one child
+/**
+ * @fn mkastunary
+ * @brief Make a unary AST node: only one child
+ * @param op The operator
+ * @param type The type
+ * @param ctype The ctype
+ * @param left The left child
+ * @param sym The symbol table
+ * @param intvalue The integer value
+ * @return The AST node
+*/
 struct ASTnode *mkastunary(int op, int type,
 			   struct symtable *ctype,
 			   struct ASTnode *left,
@@ -50,12 +90,21 @@ struct ASTnode *mkastunary(int op, int type,
 
 // Generate and return a new label number
 // just for AST dumping purposes
+/**
+ * @fn gendumplabel
+ * @brief Generate and return a new label number just for AST dumping purposes
+ * @return The label number
+*/
 static int dumpid = 1;
 static int gendumplabel(void) {
   return (dumpid++);
 }
 
 // List of AST node names
+/**
+ * @var astname
+ * @brief List of AST node names
+*/
 static char *astname[] = { NULL,
   "ASSIGN", "ASPLUS", "ASMINUS", "ASSTAR",
   "ASSLASH", "ASMOD", "TERNARY", "LOGOR",
@@ -72,6 +121,13 @@ static char *astname[] = { NULL,
 
 // Given an AST tree, print it out and follow the
 // traversal of the tree that genAST() follows
+/**
+ * @fn dumpAST
+ * @brief Given an AST tree, print it out and follow the traversal of the tree that genAST() follows
+ * @param n The AST node
+ * @param label The label
+ * @param level The level
+*/
 void dumpAST(struct ASTnode *n, int label, int level) {
   int Lfalse, Lstart, Lend;
   int i;

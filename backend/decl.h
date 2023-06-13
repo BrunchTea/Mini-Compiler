@@ -1,38 +1,198 @@
-// Function prototypes for all compiler files
-
+/**
+ * @file decl.h
+ * @author BrunchTea
+ * @category Global variables and definitions
+ * @brief Function prototypes for all compiler files
+ * @attention This file is part of the DSA project by BrunchTea.
+ */
 
 // scan.c
+/**
+ * @fn reject_token
+ * @brief Reject a token
+ * @param t Token to reject
+ * @return void
+ * @attention This function is used to reject a token
+ */
 void reject_token(struct token *t);
+/**
+ * @fn scan
+ * @brief Scan a token
+ * @param t Token to scan
+ * @return int
+ * @attention This function is used to scan a token
+ */
 int scan(struct token *t);
 
 // tree.c
+/**
+ * @fn mkastnode
+ * @brief Make an AST node
+ * @param op Operator
+ * @param type Type
+ * @param ctype C type
+ * @param left Left node
+ * @param mid Middle node
+ * @param right Right node
+ * @param sym Symbol table
+ * @param intvalue Integer value
+ * @return struct ASTnode
+ * @attention This function is used to make an AST node
+ */
 struct ASTnode *mkastnode(int op, int type,
-			  struct symtable *ctype,
-			  struct ASTnode *left,
-			  struct ASTnode *mid,
-			  struct ASTnode *right,
-			  struct symtable *sym, int intvalue);
+						  struct symtable *ctype,
+						  struct ASTnode *left,
+						  struct ASTnode *mid,
+						  struct ASTnode *right,
+						  struct symtable *sym, int intvalue);
+
+/**
+ * @fn mkastleaf
+ * @brief Make an AST leaf node
+ * @param op Operator
+ * @param type Type
+ * @param ctype C type
+ * @param sym Symbol table
+ * @param intvalue Integer value
+ * @return struct ASTnode
+ * @attention This function is used to make an AST leaf node
+ */
 struct ASTnode *mkastleaf(int op, int type,
-			  struct symtable *ctype,
-			  struct symtable *sym, int intvalue);
+						  struct symtable *ctype,
+						  struct symtable *sym, int intvalue);
+
+/**
+ * @fn mkastunary
+ * @brief Make an AST unary node
+ * @param op Operator
+ * @param type Type
+ * @param ctype C type
+ * @param left Left node
+ * @param sym Symbol table
+ * @param intvalue Integer value
+ * @return struct ASTnode
+ * @attention This function is used to make an AST unary node
+ */
 struct ASTnode *mkastunary(int op, int type,
-			   struct symtable *ctype,
-			   struct ASTnode *left,
-			   struct symtable *sym, int intvalue);
+						   struct symtable *ctype,
+						   struct ASTnode *left,
+						   struct symtable *sym, int intvalue);
+
+/**
+ * @fn dumpAST
+ * @brief Dump an AST node
+ * @param n AST node
+ * @param label Label
+ * @param level Level
+ * @return void
+ * @attention This function is used to dump an AST node
+ */
 void dumpAST(struct ASTnode *n, int label, int level);
 
 // gen.c
+/**
+ * @fn genlabel
+ * @brief Generate a label
+ * @return int
+ * @attention This function is used to generate a label
+ */
 int genlabel(void);
+/**
+ * @fn genAST
+ * @brief Generate an AST node
+ * @param n AST node
+ * @param iflabel If label
+ * @param looptoplabel Loop top label
+ * @param loopendlabel Loop end label
+ * @param parentASTop Parent AST operator
+ * @return int
+ * @attention This function is used to generate an AST node
+ */
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
-	   int loopendlabel, int parentASTop);
+		   int loopendlabel, int parentASTop);
+
+/**
+ * @fn genpreamble
+ * @brief Generate a preamble
+ * @param filename Filename
+ * @return void
+ * @attention This function generates the preamble of the assembly code file with the given filename.
+ */
 void genpreamble(char *filename);
+
+/**
+ * @fn genpostamble
+ * @brief Generate a postamble
+ * @return void
+ * @attention This function generates the postamble of the assembly code file.
+ */
 void genpostamble();
+
+/**
+ * @fn genfreeregs
+ * @brief Generate free registers
+ * @param keepreg Keep register
+ * @return void
+ * @attention This function generates code to free all registers except the one specified by the keepreg parameter.
+ */
 void genfreeregs(int keepreg);
+
+/**
+ * @fn genglobsym
+ * @brief Generate a global symbol
+ * @param node Symbol table
+ * @return void
+ * @attention This function generates a global symbol for the given symbol table node.
+ */
 void genglobsym(struct symtable *node);
+
+/**
+ * @fn genglobstr
+ * @brief Generate a global string
+ * @param strvalue String value
+ * @param append Append
+ * @return int
+ * @attention This function generates a global string with the given value and appends it to the current global string table.
+ */
 int genglobstr(char *strvalue, int append);
+
+/**
+ * @fn genglobstrend
+ * @brief Generate a global string
+ * @return void
+ * @attention This function marks the end of the global string table.
+ */
 void genglobstrend(void);
+
+/**
+ * @fn genprimsize
+ * @brief Generate a primitive size
+ * @param type Type
+ * @return int
+ * @attention This function returns the size of the primitive type specified by the type parameter.
+ */
 int genprimsize(int type);
+
+/**
+ * @fn genalign
+ * @brief Generate an alignment
+ * @param type Type
+ * @param offset Offset
+ * @param direction Direction
+ * @return int
+ * @attention This function generates code to align the stack pointer to a multiple of the size of the specified type.
+ */
 int genalign(int type, int offset, int direction);
+
+/**
+ * @fn genprintint
+ * @brief Generate a print integer
+ * @param reg Register
+ * @param id ID
+ * @return void
+ * @attention This function generates code to return the value in the specified register and with the specified ID.
+ */
+
 void genreturn(int reg, int id);
 
 // cg.c
@@ -83,7 +243,7 @@ int cgxor(int r1, int r2, int type);
 int cgshl(int r1, int r2, int type);
 int cgshr(int r1, int r2, int type);
 void cgswitch(int reg, int casecount, int toplabel,
-	      int *caselabel, int *caseval, int defaultlabel);
+			  int *caselabel, int *caseval, int defaultlabel);
 void cgmove(int r1, int r2, int type);
 void cglinenum(int line);
 int cgcast(int t, int oldtype, int newtype);
@@ -111,19 +271,19 @@ void fatalc(char *s, int c);
 
 // sym.c
 void appendsym(struct symtable **head, struct symtable **tail,
-	       struct symtable *node);
+			   struct symtable *node);
 struct symtable *newsym(char *name, int type, struct symtable *ctype,
-			int stype, int class, int nelems, int posn);
+						int stype, int class, int nelems, int posn);
 struct symtable *addglob(char *name, int type, struct symtable *ctype,
-			 int stype, int class, int nelems, int posn);
+						 int stype, int class, int nelems, int posn);
 struct symtable *addlocl(char *name, int type, struct symtable *ctype,
-			 int stype, int nelems);
+						 int stype, int nelems);
 struct symtable *addparm(char *name, int type, struct symtable *ctype,
-			 int stype);
+						 int stype);
 struct symtable *addstruct(char *name);
 struct symtable *addunion(char *name);
 struct symtable *addmemb(char *name, int type, struct symtable *ctype,
-			 int stype, int nelems);
+						 int stype, int nelems);
 struct symtable *addenum(char *name, int class, int value);
 struct symtable *addtypedef(char *name, int type, struct symtable *ctype);
 struct symtable *findglob(char *s);
@@ -146,7 +306,7 @@ int parse_type(struct symtable **ctype, int *class);
 int parse_stars(int type);
 int parse_cast(struct symtable **ctype);
 int declaration_list(struct symtable **ctype, int class, int et1, int et2,
-		     struct ASTnode **gluetree);
+					 struct ASTnode **gluetree);
 void global_declarations(void);
 
 // types.c
@@ -156,7 +316,7 @@ int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
-			    struct symtable *rctype, int op);
+							struct symtable *rctype, int op);
 
 // opt.c
 struct ASTnode *optimise(struct ASTnode *n);
