@@ -3,7 +3,6 @@
  * @author BrunchTea
  * @category Compiler
  * @brief Compiler setup and top-level execution
- * @attention This file is part of the DSA project by BrunchTea.
  */
 #include "defs.h"
 #define extern_

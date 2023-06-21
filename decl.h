@@ -3,7 +3,6 @@
  * @author BrunchTea
  * @category Global variables and definitions
  * @brief Function prototypes for all compiler files
- * @attention This file is part of the DSA project by BrunchTea.
  */
 
 // scan.c
@@ -12,7 +11,7 @@
  * @brief Reject a token
  * @param t Token to reject
  * @return void
- * @attention This function is used to reject a token
+ * @note This function is used to reject a token
  */
 void reject_token(struct token *t);
 /**
@@ -20,7 +19,7 @@ void reject_token(struct token *t);
  * @brief Scan a token
  * @param t Token to scan
  * @return int
- * @attention This function is used to scan a token
+ * @note This function is used to scan a token
  */
 int scan(struct token *t);
 
@@ -37,7 +36,7 @@ int scan(struct token *t);
  * @param sym Symbol table
  * @param intvalue Integer value
  * @return struct ASTnode
- * @attention This function is used to make an AST node
+ * @note This function is used to make an AST node
  */
 struct ASTnode *mkastnode(int op, int type,
 						  struct symtable *ctype,
@@ -55,7 +54,7 @@ struct ASTnode *mkastnode(int op, int type,
  * @param sym Symbol table
  * @param intvalue Integer value
  * @return struct ASTnode
- * @attention This function is used to make an AST leaf node
+ * @note This function is used to make an AST leaf node
  */
 struct ASTnode *mkastleaf(int op, int type,
 						  struct symtable *ctype,
@@ -71,7 +70,7 @@ struct ASTnode *mkastleaf(int op, int type,
  * @param sym Symbol table
  * @param intvalue Integer value
  * @return struct ASTnode
- * @attention This function is used to make an AST unary node
+ * @note This function is used to make an AST unary node
  */
 struct ASTnode *mkastunary(int op, int type,
 						   struct symtable *ctype,
@@ -85,7 +84,7 @@ struct ASTnode *mkastunary(int op, int type,
  * @param label Label
  * @param level Level
  * @return void
- * @attention This function is used to dump an AST node
+ * @note This function is used to dump an AST node
  */
 void dumpAST(struct ASTnode *n, int label, int level);
 
@@ -94,7 +93,7 @@ void dumpAST(struct ASTnode *n, int label, int level);
  * @fn genlabel
  * @brief Generate a label
  * @return int
- * @attention This function is used to generate a label
+ * @note This function is used to generate a label
  */
 int genlabel(void);
 /**
@@ -106,7 +105,7 @@ int genlabel(void);
  * @param loopendlabel Loop end label
  * @param parentASTop Parent AST operator
  * @return int
- * @attention This function is used to generate an AST node
+ * @note This function is used to generate an AST node
  */
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		   int loopendlabel, int parentASTop);
@@ -116,7 +115,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
  * @brief Generate a preamble
  * @param filename Filename
  * @return void
- * @attention This function generates the preamble of the assembly code file with the given filename.
+ * @note This function generates the preamble of the assembly code file with the given filename.
  */
 void genpreamble(char *filename);
 
@@ -124,7 +123,7 @@ void genpreamble(char *filename);
  * @fn genpostamble
  * @brief Generate a postamble
  * @return void
- * @attention This function generates the postamble of the assembly code file.
+ * @note This function generates the postamble of the assembly code file.
  */
 void genpostamble();
 
@@ -133,7 +132,7 @@ void genpostamble();
  * @brief Generate free registers
  * @param keepreg Keep register
  * @return void
- * @attention This function generates code to free all registers except the one specified by the keepreg parameter.
+ * @note This function generates code to free all registers except the one specified by the keepreg parameter.
  */
 void genfreeregs(int keepreg);
 
@@ -142,7 +141,7 @@ void genfreeregs(int keepreg);
  * @brief Generate a global symbol
  * @param node Symbol table
  * @return void
- * @attention This function generates a global symbol for the given symbol table node.
+ * @note This function generates a global symbol for the given symbol table node.
  */
 void genglobsym(struct symtable *node);
 
@@ -152,7 +151,7 @@ void genglobsym(struct symtable *node);
  * @param strvalue String value
  * @param append Append
  * @return int
- * @attention This function generates a global string with the given value and appends it to the current global string table.
+ * @note This function generates a global string with the given value and appends it to the current global string table.
  */
 int genglobstr(char *strvalue, int append);
 
@@ -160,7 +159,7 @@ int genglobstr(char *strvalue, int append);
  * @fn genglobstrend
  * @brief Generate a global string
  * @return void
- * @attention This function marks the end of the global string table.
+ * @note This function marks the end of the global string table.
  */
 void genglobstrend(void);
 
@@ -169,7 +168,7 @@ void genglobstrend(void);
  * @brief Generate a primitive size
  * @param type Type
  * @return int
- * @attention This function returns the size of the primitive type specified by the type parameter.
+ * @note This function returns the size of the primitive type specified by the type parameter.
  */
 int genprimsize(int type);
 
@@ -180,7 +179,7 @@ int genprimsize(int type);
  * @param offset Offset
  * @param direction Direction
  * @return int
- * @attention This function generates code to align the stack pointer to a multiple of the size of the specified type.
+ * @note This function generates code to align the stack pointer to a multiple of the size of the specified type.
  */
 int genalign(int type, int offset, int direction);
 
@@ -190,7 +189,7 @@ int genalign(int type, int offset, int direction);
  * @param reg Register
  * @param id ID
  * @return void
- * @attention This function generates code to return the value in the specified register and with the specified ID.
+ * @note This function generates code to return the value in the specified register and with the specified ID.
  */
 
 void genreturn(int reg, int id);

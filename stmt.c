@@ -2,7 +2,6 @@
  * @file stmt.c
  * @author BrunchTea
  * @brief Statement parsing functions
- * @attention This file is part of the DSA project by BrunchTea.
  */
 #include "defs.h"
 #include "data.h"

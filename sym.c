@@ -2,7 +2,6 @@
  * @file sym.c
  * @author BrunchTea
  * @brief Symbol table functions
- * @attention This file is part of the DSA project by BrunchTea.
  */
 #include "defs.h"
 #include "data.h"
@@ -18,7 +17,7 @@
  * @param tail The tail of the list
  * @param node The node to be appended
  * @return void
- * @attention head, tail or node is NULL in appendsym
+ * @note head, tail or node is NULL in appendsym
  */
 void appendsym(struct symtable **head, struct symtable **tail,
                struct symtable *node)

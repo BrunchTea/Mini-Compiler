@@ -2,7 +2,6 @@
  * @file opt.c
  * @author BrunchTea
  * @brief Optimisation functions
- * @attention This file is part of the DSA project by BrunchTea.
  */
 #include "defs.h"
 #include "data.h"

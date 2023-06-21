@@ -3,7 +3,7 @@
  * @author BrunchTea
  * @category Global variables and definitions
  * @brief Structure and enum definitions
- * @attention This file is part of the DSA project by BrunchTea.
+ * 
 */
 
 #include <stdlib.h>

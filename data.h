@@ -3,7 +3,6 @@
  * @author BrunchTea
  * @category Global variables and definitions
  * @brief Global variables and definitions
- * @attention This file is part of the DSA project by BrunchTea.
  */
 
 #ifndef extern_

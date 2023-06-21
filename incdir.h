@@ -1,1 +1,0 @@
-#define INCDIR "./build/include"

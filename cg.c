@@ -2,7 +2,6 @@
  * @file cg.c
  * @author BrunchTea
  * @brief Code generator for x86-64 using the QBE intermediate language.
- * @attention This file is part of the DSA project by BrunchTea.
  */
 
 #include "defs.h"
@@ -41,7 +40,7 @@ void cgdataseg()
  * @brief Given a scalar type value, return the character that matches the QBE type.
  * @param type Type
  * @return char
- * @attention Because chars are stored on the stack,we can return 'w' for P_CHAR.
+ * @note Because chars are stored on the stack,we can return 'w' for P_CHAR.
  */
 char cgqbetype(int type)
 {
@@ -96,7 +95,7 @@ int cgprimsize(int type)
  * @param offset Offset
  * @param direction Direction
  * @return int
- * @attention This could be the original offset, or it could be above/below the original
+ * @note This could be the original offset, or it could be above/below the original
  */
 int cgalign(int type, int offset, int direction)
 {
@@ -737,7 +736,7 @@ int cgcall(struct symtable *sym, int numargs, int *arglist, int *typelist)
  * @param val
  * @param type
  * @return
- * @attention As we only use this for address calculations, extend the type to be a QBE 'l' if required
+ * @note As we only use this for address calculations, extend the type to be a QBE 'l' if required
  */
 int cgshlconst(int r, int val, int type)
 {
@@ -881,7 +880,7 @@ void cgglobsym(struct symtable *node)
  * @param strvalue
  * @param append
  * @return
- * @attention Don't output the label if append is true.
+ * @note Don't output the label if append is true.
  */
 void cgglobstr(int l, char *strvalue, int append)
 {

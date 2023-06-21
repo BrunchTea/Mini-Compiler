@@ -62,8 +62,7 @@ share/
 # npm
 node_modules/
 
-#test
-test/
-
 # docs
-docs/
+docs/frontend/
+lib/frontend/
+lib/latex/

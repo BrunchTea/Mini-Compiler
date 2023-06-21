@@ -2,7 +2,7 @@
  * @file types.c
  * @author BrunchTea
  * @brief Types and type handling
- * @attention This file is part of the DSA project by BrunchTea.
+ * 
 */
 #include "defs.h"
 #include "data.h"

@@ -2,7 +2,7 @@
  * @file expr.c
  * @author BrunchTea
  * @brief Parsing of expressions
- * @attention This file is part of the DSA project by BrunchTea.
+ * 
 */
 #include "defs.h"
 #include "data.h"

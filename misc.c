@@ -2,7 +2,7 @@
  * @file misc.c
  * @author BrunchTea
  * @brief Miscellaneous functions
- * @attention This file is part of the DSA project by BrunchTea.
+ * 
 */
 #include "defs.h"
 #include "data.h"

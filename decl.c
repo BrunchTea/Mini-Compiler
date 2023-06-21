@@ -2,7 +2,6 @@
  * @file decl.c
  * @author BrunchTea
  * @brief Function prototypes for all compiler files
- * @attention This file is part of the DSA project by BrunchTea.
  */
 
 #include "defs.h"
